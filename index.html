@@ -3,39 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professor Pebble: English Practice AI</title>
+    <title>Professor Pebble on Canvas</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars from the canvas */
+        }
+        /* Canvas as a full-screen background */
+        #background-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* Place it behind everything */
+        }
+        /* Main container to center the chat window */
+        .main-container {
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
             padding: 20px;
             box-sizing: border-box;
+            position: relative; /* Needed to ensure it's on top of the canvas */
+            z-index: 1;
         }
         .chat-container {
-            background-color: #ffffff;
-            border-radius: 1.5rem; /* Increased border-radius for more rounded corners */
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
+            backdrop-filter: blur(10px); /* Frosted glass effect */
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             width: 100%;
             max-width: 600px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            min-height: 70vh; /* Ensure it takes a good portion of the viewport height */
+            min-height: 70vh;
             max-height: 90vh;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         .chat-header {
             background-color: #6366f1; /* Indigo 500 */
             color: white;
             padding: 1.5rem;
-            border-top-left-radius: 1.5rem;
-            border-top-right-radius: 1.5rem;
             text-align: center;
             font-weight: 600;
             font-size: 1.25rem;
@@ -51,20 +68,20 @@
         .message-bubble {
             max-width: 80%;
             padding: 0.75rem 1rem;
-            border-radius: 1.25rem; /* More rounded corners for bubbles */
+            border-radius: 1.25rem;
             word-wrap: break-word;
         }
         .user-message {
             background-color: #e0e7ff; /* Indigo 100 */
             color: #312e81; /* Indigo 900 */
             align-self: flex-end;
-            border-bottom-right-radius: 0.25rem; /* Slightly less rounded at the bottom-right for user */
+            border-bottom-right-radius: 0.25rem;
         }
         .ai-message {
             background-color: #f3f4f6; /* Gray 100 */
             color: #1f2937; /* Gray 900 */
             align-self: flex-start;
-            border-bottom-left-radius: 0.25rem; /* Slightly less rounded at the bottom-left for AI */
+            border-bottom-left-radius: 0.25rem;
         }
         .chat-input-area {
             display: flex;
@@ -72,7 +89,7 @@
             border-top: 1px solid #e5e7eb;
             gap: 0.75rem;
             align-items: center;
-            flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+            flex-wrap: wrap;
         }
         .chat-input {
             flex-grow: 1;
@@ -80,618 +97,386 @@
             border: 1px solid #d1d5db;
             border-radius: 0.75rem;
             outline: none;
-            resize: none; /* Prevent manual resizing */
-            min-height: 40px; /* Ensure a minimum height */
-            max-height: 100px; /* Limit max height for input */
-            overflow-y: auto; /* Allow scrolling if content exceeds max-height */
-            margin-bottom: 0.5rem; /* Space below input on small screens */
-            width: 100%; /* Take full width on small screens */
+            resize: none;
+            min-height: 40px;
+            max-height: 100px;
+            overflow-y: auto;
+            width: 100%;
         }
         .chat-button {
             padding: 0.75rem 1.5rem;
             border-radius: 0.75rem;
             font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
+            transition: background-color 0.2s, transform 0.1s, opacity 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            flex-shrink: 0; /* Prevent buttons from shrinking */
-            margin-bottom: 0.5rem; /* Space below buttons on small screens */
+            flex-shrink: 0;
         }
-        .chat-button:hover {
-            transform: translateY(-1px);
+        .chat-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
-        .chat-button:active {
-            transform: translateY(0);
-        }
-        .send-button {
-            background-color: #4f46e5; /* Indigo 600 */
-            color: white;
-        }
-        .send-button:hover {
-            background-color: #4338ca; /* Indigo 700 */
-        }
-        .speak-button {
-            background-color: #10b981; /* Emerald 500 */
-            color: white;
-        }
-        .speak-button:hover {
-            background-color: #059669; /* Emerald 600 */
-        }
-        .voice-input-button {
-            background-color: #f59e0b; /* Amber 500 */
-            color: white;
-        }
-        .voice-input-button:hover {
-            background-color: #d97706; /* Amber 600 */
-        }
-        .listening-indicator {
-            color: #f59e0b; /* Amber 500 */
-            font-size: 0.875rem;
-            margin-left: 0.5rem;
-            display: none; /* Hidden by default */
-        }
-        .loading-indicator {
-            /* Initially hidden, will be shown via JS */
-            align-self: flex-start;
-            padding: 0.75rem 1rem;
-            border-radius: 1.25rem;
-            background-color: #f3f4f6;
-            color: #1f2937;
-            font-style: italic;
-            display: none; /* Hidden by default, JS will change to 'block' */
-        }
-        .user-id-display {
-            font-size: 0.75rem;
-            color: #6b7280;
-            padding: 0.5rem 1.5rem;
-            text-align: center;
-            border-bottom-left-radius: 1.5rem;
-            border-bottom-right-radius: 1.5rem;
-            background-color: #f9fafb;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        /* Responsive adjustments for buttons */
+        .send-button { background-color: #4f46e5; color: white; }
+        .send-button:hover:not(:disabled) { background-color: #4338ca; }
+        .voice-input-button { background-color: #f59e0b; color: white; }
+        .voice-input-button:hover:not(:disabled) { background-color: #d97706; }
+        .listening-indicator { color: #f59e0b; display: none; margin-left: 0.5rem; }
+        .user-id-display { font-size: 0.75rem; color: #6b7280; padding: 0.5rem 1.5rem; text-align: center; border-top: 1px solid #e5e7eb; }
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .chat-messages::-webkit-scrollbar-thumb:hover { background: #555; }
         @media (max-width: 480px) {
-            .chat-input-area {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .chat-button {
-                width: 100%; /* Full width buttons on small screens */
-                margin-bottom: 0.5rem;
-            }
-            .chat-input {
-                margin-bottom: 1rem; /* More space between input and buttons */
-            }
-        }
-
-        /* Custom scrollbar for chat messages */
-        .chat-messages::-webkit-scrollbar {
-            width: 8px;
-        }
-        .chat-messages::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
-        }
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            .chat-input-area { flex-direction: column; align-items: stretch; }
+            .chat-button, .chat-input { width: 100%; margin-bottom: 0.5rem; }
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            Professor Pebble: Your English Practice AI
-        </div>
-        <div class="chat-messages" id="chatMessages">
+    <!-- The Canvas for the background animation -->
+    <canvas id="background-canvas"></canvas>
+
+    <!-- A main container to center the chat window on top of the canvas -->
+    <div class="main-container">
+        <div class="chat-container">
+            <div class="chat-header">
+                Professor Pebble: Your English Practice AI
             </div>
-        <div class="chat-input-area">
-            <textarea id="chatInput" class="chat-input" placeholder="Type your message..." rows="1"></textarea>
-            <button id="sendButton" class="chat-button send-button">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l.684-.275a1 1 0 00.57-1.664L10 9.778l4.755 7.132a1 1 0 00.57 1.664l.684.275a1 1 0 001.169-1.409l-7-14z" />
-                </svg>
-                Send
-            </button>
-            <button id="speakButton" class="chat-button speak-button">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 0 011.415 0A5.972 5.972 0 0115 10a5.972 5.972 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.971 3.971 0 0013 10a3.971 3.971 0 00-1.172-2.828 1 1 0 010-1.415z" clip-rule="evenodd" />
-                </svg>
-                Speak
-            </button>
-            <button id="voiceInputButton" class="chat-button voice-input-button">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 0110 16.129V18a1 1 0 102 0v-1.871h-.001z" clip-rule="evenodd" />
-                </svg>
-                Voice Input
-            </button>
-            <span id="listeningStatus" class="listening-indicator">Listening...</span>
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input-area">
+                <textarea id="chatInput" class="chat-input" placeholder="Type your message..." rows="1"></textarea>
+                <button id="sendButton" class="chat-button send-button">Send</button>
+                <button id="voiceInputButton" class="chat-button voice-input-button">Voice</button>
+                <span id="listeningStatus" class="listening-indicator">Listening...</span>
+            </div>
+            <div id="userIdDisplay" class="user-id-display"></div>
         </div>
-        <div id="userIdDisplay" class="user-id-display"></div>
     </div>
 
     <script type="module">
         // Firebase imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // DOM Elements
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.getElementById('sendButton');
-        const speakButton = document.getElementById('speakButton');
         const voiceInputButton = document.getElementById('voiceInputButton');
         const listeningStatus = document.getElementById('listeningStatus');
         const userIdDisplay = document.getElementById('userIdDisplay');
 
-        // Firebase variables
-        let app;
-        let db;
-        let auth;
-        let currentUserId = null;
-        let isAuthReady = false;
+        // --- Curriculum and AI State ---
+        const curriculum = {
+            intro: {
+                prompt: "Welcome to English Stone, I'm Professor Pebble. Today we can talk about Colors, Fruits, Weather, or the Sea. What sounds good?",
+                keywords: { "color": "colors", "fruit": "fruits", "weather": "weather", "sea": "sea" },
+                defaultResponse: "Please choose a topic: Colors, Fruits, Weather, or the Sea."
+            },
+            colors: {
+                questions: [
+                    { q: "Let's talk about colors! What color is the sky?", a: "blue" },
+                    { q: "Good! What color is a banana?", a: "yellow" },
+                    { q: "Great! What color is a strawberry?", a: "red" }
+                ],
+                completion: "You know your colors! Do you want to try another topic? Fruits, Weather, or the Sea?",
+            },
+            fruits: {
+                questions: [
+                    { q: "Let's talk about fruits! Is an apple a fruit? Yes or no?", a: "yes" },
+                    { q: "Correct! Is a carrot a fruit? Yes or no?", a: "no" },
+                    { q: "That's right! What is your favorite fruit?", a: null } // Open ended
+                ],
+                completion: "You know a lot about fruits! Do you want to try another topic? Colors, Weather, or the Sea?",
+            },
+            weather: {
+                questions: [
+                    { q: "Let's talk about the weather! Is it hot in the summer? Yes or no?", a: "yes" },
+                    { q: "Right! Is it cold in the winter? Yes or no?", a: "yes" },
+                    { q: "Great! What is the weather like today?", a: null } // Open ended
+                ],
+                completion: "You are a weather expert! Do you want to try another topic? Colors, Fruits, or the Sea?",
+            },
+            sea: {
+                questions: [
+                    { q: "Let's talk about the sea! Can a fish swim? Yes or no?", a: "yes" },
+                    { q: "That's right! Is a crab a fish? Yes or no?", a: "no" },
+                    { q: "Correct! What can you see on the sea? A boat or a car?", a: "boat" }
+                ],
+                completion: "You know all about the sea! Do you want to try another topic? Colors, Fruits, or Weather?",
+            }
+        };
+        let currentTopic = 'intro';
+        let questionIndex = 0;
+        const initialPebbleGreeting = curriculum.intro.prompt;
+        let lastAIResponse = initialPebbleGreeting;
 
-        // Global chat history for Gemini API calls
-        // This will store messages in the format required by Gemini API: { role: "user", parts: [{ text: "..." }] } or { role: "model", parts: [{ text: "..." }] }
-        // The initial AI message is crucial for setting the context for the AI from the very start.
-        let geminiChatHistory = [{
-            role: "model",
-            parts: [{ text: "Welcome to English Stone! I'm Professor Pebble. I'm ready to help with your English lessons! We can review past topics like Colors, Fruits, or Weather, or practice new words about the Sea. Which sounds fun?" }]
-        }];
-        let lastAIResponse = "Welcome to English Stone! I'm Professor Pebble. I'm ready to help with your English lessons! We can review past topics like Colors, Fruits, or Weather, or practice new words about the Sea. Which sounds fun?";
-
-        // Speech Recognition variables
+        // --- App State ---
+        let db, auth, currentUserId = null, isAuthReady = false, unsubscribeFromChats = null;
         let recognition;
         let isListening = false;
+        let isAwaitingAIResponse = false;
 
-        // Initialize Firebase
+        // --- Initialization ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+        const firebaseConfig = JSON.parse(firebaseConfigStr);
 
         if (Object.keys(firebaseConfig).length > 0) {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                    isAuthReady = true;
-                    console.log("Authenticated user ID:", currentUserId);
-                    userIdDisplay.textContent = `Your User ID: ${currentUserId}`;
-                    loadChatMessages();
-                } else {
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (error) {
-                        console.error("Error during Firebase authentication:", error);
-                        currentUserId = crypto.randomUUID(); // Fallback to a random ID
-                        isAuthReady = true;
-                        userIdDisplay.textContent = `Your User ID (Anonymous): ${currentUserId}`;
-                        console.log("Using anonymous user ID due to authentication error:", currentUserId);
-                        displayInitialAIMessage(); // Display initial message if auth fails
-                    }
-                }
-            });
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                onAuthStateChanged(auth, handleAuthState);
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                handleOfflineMode();
+            }
         } else {
-            console.error("Firebase config is not available. Chat history will not be saved.");
-            currentUserId = crypto.randomUUID();
-            isAuthReady = true;
-            userIdDisplay.textContent = `Your User ID (Offline): ${currentUserId}`;
-            console.log("Using offline user ID:", currentUserId);
-            displayInitialAIMessage(); // Display initial message
+            console.log("Firebase config not found. Running in offline mode.");
+            handleOfflineMode();
         }
 
-        /**
-         * Displays the initial AI welcome message.
-         */
-        function displayInitialAIMessage() {
-            // Only display if no messages are currently in the chat (prevents duplicates on load)
+        // --- Authentication & State Management ---
+        async function handleAuthState(user) {
+            if (unsubscribeFromChats) unsubscribeFromChats();
+            if (user) {
+                currentUserId = user.uid;
+                isAuthReady = true;
+                userIdDisplay.textContent = `User ID: ${currentUserId}`;
+                await loadCurriculumState();
+                loadChatMessages();
+            } else {
+                try {
+                    const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                    if (token) await signInWithCustomToken(auth, token);
+                    else await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Authentication failed:", error);
+                    handleOfflineMode();
+                }
+            }
+        }
+
+        function handleOfflineMode() {
+            currentUserId = `offline_${crypto.randomUUID()}`;
+            isAuthReady = false; // Mark as not ready for DB operations
+            userIdDisplay.textContent = `Offline Mode`;
             if (chatMessages.children.length === 0) {
-                displayMessage(geminiChatHistory[0].parts[0].text, 'ai');
-                speakLastAIResponse(); // Speak initial message
+                displayMessage(initialPebbleGreeting, 'ai');
+                speakLastAIResponse();
             }
         }
 
-        /**
-         * Loads chat messages from Firestore for the current user.
-         * Sets up a real-time listener using onSnapshot.
-         */
-        function loadChatMessages() {
-            if (!isAuthReady || !db || !currentUserId) {
-                console.log("Firebase not ready or user ID not available to load messages.");
-                displayInitialAIMessage(); // Ensure initial message is shown if Firebase isn't fully ready
-                return;
-            }
-
-            const chatCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/english_practice_chats`);
-            const q = query(chatCollectionRef);
-
-            onSnapshot(q, (snapshot) => {
-                chatMessages.innerHTML = ''; // Clear existing messages
-                const loadedMessages = [];
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    loadedMessages.push(data);
-                });
-
-                // Sort messages by timestamp client-side
-                loadedMessages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
-
-                geminiChatHistory = []; // Reset Gemini history
-                if (loadedMessages.length === 0) {
-                     // If no history, add the default AI welcome message to history
-                    geminiChatHistory.push({
-                        role: "model",
-                        parts: [{ text: lastAIResponse }] // Use the default initial message
-                    });
-                    displayInitialAIMessage(); // Display the welcome message if chat is empty
+        async function loadCurriculumState() {
+            if (!isAuthReady || !db) return;
+            const stateRef = doc(db, `artifacts/${appId}/users/${currentUserId}/english_practice_state/state`);
+            try {
+                const docSnap = await getDoc(stateRef);
+                if (docSnap.exists()) {
+                    const state = docSnap.data();
+                    currentTopic = state.currentTopic || 'intro';
+                    questionIndex = state.questionIndex || 0;
                 } else {
-                    loadedMessages.forEach(data => {
+                    await updateCurriculumState('intro', 0);
+                }
+            } catch (error) {
+                console.error("Error loading curriculum state:", error);
+            }
+        }
+        
+        async function updateCurriculumState(topic, index) {
+            currentTopic = topic;
+            questionIndex = index;
+            if (!isAuthReady || !db) return;
+            const stateRef = doc(db, `artifacts/${appId}/users/${currentUserId}/english_practice_state/state`);
+            try {
+                await setDoc(stateRef, { currentTopic, questionIndex });
+            } catch (error) {
+                console.error("Error updating curriculum state:", error);
+            }
+        }
+
+        // --- Chat History Management ---
+        function loadChatMessages() {
+            if (!isAuthReady || !db) return;
+            const chatCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/english_practice_chats`);
+            const q = query(chatCollectionRef, orderBy("timestamp", "asc"));
+            unsubscribeFromChats = onSnapshot(q, (snapshot) => {
+                chatMessages.innerHTML = '';
+                if (snapshot.empty) {
+                    displayMessage(initialPebbleGreeting, 'ai');
+                    speakLastAIResponse(); // FIX: Speak the welcome message on first load
+                    saveMessageToFirestore(initialPebbleGreeting, 'ai');
+                } else {
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
                         displayMessage(data.text, data.sender);
-                        // Rebuild geminiChatHistory from loaded messages
-                        geminiChatHistory.push({ role: data.sender === 'user' ? 'user' : 'model', parts: [{ text: data.text }] });
-                        if (data.sender === 'ai') {
-                            lastAIResponse = data.text; // Update last AI response for speak button
-                        }
+                        if (data.sender === 'ai') lastAIResponse = data.text;
                     });
                 }
                 scrollToBottom();
             }, (error) => {
-                console.error("Error listening to chat messages:", error);
-                displayInitialAIMessage(); // Display initial message if there's an error loading history
+                console.error("Error loading chat:", error);
+                handleOfflineMode();
             });
         }
 
-        /**
-         * Displays a message in the chat interface.
-         * @param {string} text - The message text.
-         * @param {'user'|'ai'} sender - The sender of the message ('user' or 'ai').
-         */
+        async function saveMessageToFirestore(text, sender) {
+            if (!isAuthReady || !db) return;
+            try {
+                const chatCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/english_practice_chats`);
+                await addDoc(chatCollectionRef, { text, sender, timestamp: serverTimestamp() });
+            } catch (e) {
+                console.error("Error saving message:", e);
+            }
+        }
+
+        // --- Core Chat Logic ---
         function displayMessage(text, sender) {
             const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message-bubble');
-            if (sender === 'user') {
-                messageDiv.classList.add('user-message');
-            } else {
-                messageDiv.classList.add('ai-message');
-            }
+            messageDiv.classList.add('message-bubble', sender === 'user' ? 'user-message' : 'ai-message');
             messageDiv.textContent = text;
             chatMessages.appendChild(messageDiv);
             scrollToBottom();
         }
 
-        /**
-         * Scrolls the chat messages container to the bottom.
-         */
         function scrollToBottom() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        /**
-         * Sends a message to the AI and displays the response.
-         */
+        function generateAIResponse(userMessage) {
+            const lowerCaseMessage = userMessage.toLowerCase();
+            const topicData = curriculum[currentTopic];
+
+            if (currentTopic === 'intro') {
+                for (const keyword in topicData.keywords) {
+                    if (lowerCaseMessage.includes(keyword)) {
+                        const newTopic = topicData.keywords[keyword];
+                        updateCurriculumState(newTopic, 0);
+                        return curriculum[newTopic].questions[0].q;
+                    }
+                }
+                return topicData.defaultResponse;
+            }
+
+            const currentQuestion = topicData.questions[questionIndex];
+            let response = '';
+
+            if (currentQuestion.a && lowerCaseMessage.includes(currentQuestion.a)) {
+                response = `Correct! `;
+            } else if (currentQuestion.a) {
+                 response = `Good try. `;
+            } else {
+                response = `Thank you for sharing! `;
+            }
+            
+            const nextQuestionIndex = questionIndex + 1;
+
+            if (nextQuestionIndex >= topicData.questions.length) {
+                response += topicData.completion;
+                updateCurriculumState('intro', 0);
+            } else {
+                response += curriculum[currentTopic].questions[nextQuestionIndex].q;
+                updateCurriculumState(currentTopic, nextQuestionIndex);
+            }
+            
+            return response;
+        }
+
         async function sendMessage() {
             const userMessage = chatInput.value.trim();
-            if (userMessage === '') return;
-
+            if (userMessage === '' || isAwaitingAIResponse) return;
+            
+            setUiBusy(true);
             displayMessage(userMessage, 'user');
-            chatInput.value = ''; // Clear input immediately
-            chatInput.style.height = 'auto'; // Reset textarea height
+            saveMessageToFirestore(userMessage, 'user');
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
 
-            // Add user message to Gemini's chat history for context
-            geminiChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
-
-            // Add user message to Firestore
-            if (isAuthReady && db && currentUserId) {
-                try {
-                    await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/english_practice_chats`), {
-                        text: userMessage,
-                        sender: 'user',
-                        timestamp: serverTimestamp()
-                    });
-                } catch (e) {
-                    console.error("Error adding user message to Firestore: ", e);
-                }
-            }
-
-            // Show loading indicator
-            const loadingBubble = document.createElement('div');
-            loadingBubble.classList.add('loading-indicator', 'message-bubble');
-            loadingBubble.id = 'loadingIndicator';
-            loadingBubble.textContent = 'Professor Pebble is thinking...';
-            loadingBubble.style.display = 'block';
-            chatMessages.appendChild(loadingBubble);
-            scrollToBottom();
-
-            // Trimmed Lesson Plan (April, May, June, July only)
-            const lessonPlan = `
-                April: Colors & Shapes
-                • Lesson 1: Hello Colors!
-                    o Theme: Identifying and naming basic colors.
-                    o Grammar Focus: Simple present tense ("This is red," "The apple is red.")
-                    o Vocabulary Focus: red, blue, yellow, green, black, white
-                    o Warm-up (5 mins): "Color Flashcard Game".
-                    o Reading/Listening (15 mins): Read aloud "The Colorful Rainbow". Simple comprehension questions.
-                    o Speaking/Pronunciation (20 mins): Color recognition game, pronunciation practice. Pair activity: "What's your favorite color and why?" (simple answers).
-                    o Writing (5 mins): Complete sentences: "The ____ is ____."
-                    o Wrap-up/Review (5 mins): Review colors.
-                • Lesson 2: Shape Up!
-                    o Theme: Identifying and naming basic shapes.
-                    o Grammar Focus: Simple present tense ("It is a circle," "The ball is round.")
-                    o Vocabulary Focus: circle, square, triangle, rectangle, star, heart
-                    o Warm-up (5 mins): "Shape Tracing".
-                    o Reading/Listening (15 mins): Listen to a song about shapes with actions.
-                    o Speaking/Pronunciation (20 mins): "Shape Detective" game, pronunciation practice. Group activity: Identify shapes of objects.
-                    o Writing (5 mins): Match shape names to drawings.
-                    o Wrap-up/Review (5 mins): Review shapes.
-                • Lesson 3: Colors and Shapes Together!
-                    o Theme: Combining colors and shapes to describe objects.
-                    o Grammar Focus: Adjectives before nouns ("a red circle," "a blue square")
-                    o Vocabulary Focus: red circle, blue square, yellow triangle, green rectangle
-                    o Warm-up (5 mins): "Color and Shape Memory".
-                    o Reading/Listening (15 mins): Read descriptions of colored shapes. Students draw.
-                    o Speaking/Pronunciation (20 mins): "Describe the Object" pair activity. Practice "a ____ ____."
-                    o Writing (5 mins): Write sentences describing colored shapes.
-                    o Wrap-up/Review (5 mins): Review color and shape combinations.
-
-                May: Fruits & Vegetables
-                • Lesson 1: Delicious Fruits!
-                    o Theme: Identifying and naming common fruits.
-                    o Grammar Focus: Simple present tense ("I like apples," "It is a banana.")
-                    o Vocabulary Focus: apple, banana, orange, strawberry, grape, watermelon
-                    o Warm-up (5 mins): "Fruit Basket Upset".
-                    o Reading/Listening (15 mins): Read "The Very Hungry Caterpillar" (fruit focus).
-                    o Speaking/Pronunciation (20 mins): "What's your favorite fruit?" interviews. Pronunciation practice. Describe a fruit (no name).
-                    o Writing (5 mins): Write: "My favorite fruit is ____." Draw and label.
-                    o Wrap-up/Review (5 mins): Fruit flashcards.
-                • Lesson 2: Healthy Vegetables!
-                    o Theme: Identifying and naming common vegetables.
-                    o Grammar Focus: Simple present tense ("I eat carrots," "It is a tomato.")
-                    o Vocabulary Focus: carrot, tomato, cucumber, broccoli, potato, onion
-                    o Warm-up (5 mins): "Vegetable Charades".
-                    o Reading/Listening (15 mins): Listen to a vegetable song.
-                    o Speaking/Pronunciation (20 mins): "What vegetables do you like/dislike?" discussion. Pronunciation practice. Describe a vegetable (no name).
-                    o Writing (5 mins): Write: "I like ____." Draw and label.
-                    o Wrap-up/Review (5 mins): Vegetable flashcards.
-                • Lesson 3: Fruits vs. Vegetables!
-                    o Theme: Distinguishing between fruits and vegetables.
-                    o Grammar Focus: Using "and" ("apples and bananas").
-                    o Vocabulary Focus: fruit, vegetable, all fruit/veg vocabulary.
-                    o Warm-up (5 mins): Sort fruit/veg pictures.
-                    o Reading/Listening (15 mins): Simple info text: fruit vs. vegetable.
-                    o Speaking/Pronunciation (20 mins): "Is it a fruit or a vegetable?" game. Practice sentences with "and." Pair: Name fruits/veg.
-                    o Writing (5 mins): Lists of fruits and vegetables.
-                    o Wrap-up/Review (5 mins): Quick quiz: fruit or vegetable?
-
-                June: Weather & Seasons
-                • Lesson 1: Sunny and Rainy Days
-                    o Theme: Learning about sunny and rainy weather.
-                    o Grammar Focus: Simple present tense ("The sun is shining," "It is raining.")
-                    o Vocabulary Focus: sunny, sun, hot, sky, rain, wet, umbrella
-                    o Warm-up (5 mins): "Weather Actions".
-                    o Reading/Listening (15 mins): Read a short story about a sunny/rainy day.
-                    o Speaking/Pronunciation (20 mins): "What do you do...?" discussion/pairs.
-                    o Writing (5 mins): Sentences about sunny/rainy weather.
-                    o Wrap-up/Review (5 mins): Sunny/rainy flashcards.
-                • Lesson 2: Windy and Cloudy Days
-                    o Theme: Learning about windy and cloudy weather.
-                    o Grammar Focus: Simple present tense ("It is windy," "The sky is cloudy.")
-                    o Vocabulary Focus: windy, wind, cloudy, clouds, cool
-                    o Warm-up (5 mins): "Weather Sounds".
-                    o Reading/Listening (15 mins): Listen to a short song about wind/clouds.
-                    o Speaking/Pronunciation (20 mins): "What do you see...?" discussion/pairs.
-                    o Writing (5 mins): Sentences about windy/cloudy weather.
-                    o Wrap-up/Review (5 mins): Windy/cloudy flashcards.
-                • Lesson 3: Seasons - Spring and Summer
-                    o Theme: Introduction to spring and summer.
-                    o Grammar Focus: Simple present tense ("Spring is warm," "Summer is hot.")
-                    o Vocabulary Focus: spring, summer, warm, flowers, green, beach, ice cream
-                    o Warm-up (5 mins): "Season Actions".
-                    o Reading/Listening (15 mins): Simple descriptions of spring/summer.
-                    o Speaking/Pronunciation (20 mins): "What do you like about...?" discussion/pairs.
-                    o Writing (5 mins): Sentences about spring/summer.
-                    o Wrap-up/Review (5 mins): Spring/summer flashcards.
-
-                July: At the Sea
-                • Lesson 1: Things in the Sea!
-                    o Theme: Identifying basic sea creatures and objects.
-                    o Grammar Focus: Simple present tense ("It is a fish," "I see a shell.")
-                    o Vocabulary Focus: fish, shell, boat, crab, starfish, seaweed
-                    o Warm-up (5 mins): "Sea Animal Sounds".
-                    o Reading/Listening (15 mins): Short story about sea animals.
-                    o Speaking/Pronunciation (20 mins): "What's your favorite...?" discussion.
-                    o Writing (5 mins): Sentences: "I see a ____."
-                    o Wrap-up/Review (5 mins): Sea animal flashcards.
-                • Lesson 2: Colors and Sizes of the Sea
-                    o Theme: Describing sea creatures and objects using colors and sizes.
-                    o Grammar Focus: Adjectives ("a blue fish," "a big boat").
-                    o Vocabulary Focus: blue, yellow, big, small, and sea creature vocabulary.
-                    o Warm-up (5 mins): "Color by Number" (sea theme).
-                    o Reading/Listening (15 mins): Description of colorful/sized sea life.
-                    o Speaking/Pronunciation (20 mins): "Describe the..." pair activity.
-                • Lesson 3: Actions at the Sea!
-                    o Theme: Learning verbs related to the sea.
-                    o Grammar Focus: Simple present tense ("I swim," "They play.")
-                    o Vocabulary Focus: swim, dig, play, see, find
-                    o Warm-up (5 mins): "Action Charades" (sea-related verbs).
-                    o Reading/Listening (15 mins): Short story about activities at the beach.
-                    o Speaking/Pronunciation (20 mins): "What can you do at the sea?" pair interviews. Practice verb pronunciation.
-                    o Writing (5 mins): Complete sentences: "I can ____ at the sea."
-                    o Wrap-up/Review (5 mins): Review action verbs.
-            `;
-
-            // System Instruction (explicitly defined for each call for robustness)
-            const systemInstruction = `You are Professor Pebble, an EFL (English as a Foreign Language) children's teacher for English Stone. Your goal is to help young Japanese learners (Elementary Grades 2-3) improve their English based on the provided lesson plan. Their English ability is very low.
-
-The current month for new targets is July.
-
-Your current focus is to:
-1.  **Review past lessons:** Offer to review topics from **April (Colors & Shapes), May (Fruits & Vegetables), and June (Weather & Seasons)**.
-2.  **Practice current month's targets:** Guide practice for **July's** theme (At the Sea).
-
-When responding:
-* Keep your language **extremely simple**, using **1-3 word sentences** and **only basic vocabulary** from the curriculum.
-* Ask **ONLY direct, closed-ended questions** that require a very specific, short answer (e.g., "Yes.", "No.", "Red.", "Apple.", "Swim.").
-* **Always control the conversation.** After a student responds, immediately ask the *next simple question* to guide them. Do not wait for them to ask.
-* **Never ask open-ended questions** like "What else?", "Tell me more?", "Why?", or "How?".
-* Provide choices or clear prompts when possible.
-* Be **positive and encouraging** at all times.
-* If the student gives a good answer, say "Good!" or "Yes!" and then ask the next question related to the topic.
-* If the student gives a wrong answer, gently correct with the right word/phrase and then ask again or move to a simpler question. Example: Student says "Blue." You say: "No, it's red. Is it red?" or "It's red. What color is this?"
-
-Here are examples of the types of questions you should ask, based on the curriculum:
-* For Colors: "Is this red?" "What color is this? Red or blue?"
-* For Shapes: "Is it a circle?" "What shape is this? Square or triangle?"
-* For Fruits: "Do you like apples?" "Is this an apple or a banana?"
-* For Vegetables: "Do you eat carrots?" "Is this a tomato or a potato?"
-* For Weather: "Is it sunny today?" "Is it raining?"
-* For Seasons: "Is spring warm?" "Is summer hot?"
-* For Sea (July): "Can you see a fish?" "Is this a crab or a starfish?" "What color is the fish?" "Can you swim at the sea?"
-`;
-
-            // The 'contents' array sent to Gemini API should alternate between user and model roles.
-            // The initial system instruction is added as a 'system' role.
-            const fullPromptContents = [
-                { role: "system", parts: [{ text: systemInstruction }] },
-                { role: "system", parts: [{ text: `Lesson Plan:\n${lessonPlan}` }] },
-                ...geminiChatHistory // Include the full conversation history
-            ];
-
-            const apiKey = ""; // Canvas will automatically provide this - **REPLACE THIS WITH YOUR SECURE FUNCTION CALL**
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-            const payload = { contents: fullPromptContents }; // Send the full history and system instruction
-
-            try {
-                // **Important: For production, you should call a Firebase Cloud Function here**
-                // **instead of directly hitting the Gemini API with your key.**
-                // Example:
-                // import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js';
-                // const functions = getFunctions(app);
-                // const callGemini = httpsCallable(functions, 'callGeminiAPI'); // Your function name
-                // const result = await callGemini({ history: geminiChatHistory, userMessage: userMessage, lessonPlan: lessonPlan });
-                // const aiResponse = result.data.text;
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const errorBody = await response.text();
-                    throw new Error(`API call failed with status ${response.status}: ${errorBody}`);
-                }
-
-                const result = await response.json();
-
-                // Remove loading indicator
-                const existingLoadingIndicator = document.getElementById('loadingIndicator');
-                if (existingLoadingIndicator) {
-                    existingLoadingIndicator.remove();
-                }
-
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const aiResponse = result.candidates[0].content.parts[0].text;
-                    displayMessage(aiResponse, 'ai');
-                    lastAIResponse = aiResponse; // Update for speech synthesis
-                    speakLastAIResponse(); // Automatically speak the AI response
-
-                    // Add AI message to Gemini's chat history for context
-                    geminiChatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
-
-                    // Add AI message to Firestore
-                    if (isAuthReady && db && currentUserId) {
-                        try {
-                            await addDoc(collection(db, `artifacts/${appId}/users/${currentUserId}/english_practice_chats`), {
-                                text: aiResponse,
-                                sender: 'ai',
-                                timestamp: serverTimestamp()
-                            });
-                        } catch (e) {
-                            console.error("Error adding AI message to Firestore: ", e);
-                        }
-                    }
-                } else {
-                    console.error("Unexpected API response structure:", result);
-                    displayMessage("Sorry, Professor Pebble couldn't generate a response. The API returned an unexpected format.", 'ai');
-                    lastAIResponse = "Sorry, Professor Pebble couldn't generate a response. The API returned an unexpected format.";
-                }
-            } catch (error) {
-                console.error("Error fetching AI response:", error);
-                // Remove loading indicator on error
-                const existingLoadingIndicator = document.getElementById('loadingIndicator');
-                if (existingLoadingIndicator) {
-                    existingLoadingIndicator.remove();
-                }
-                displayMessage(`There was an error connecting to Professor Pebble: ${error.message}. Please check your internet connection and try again.`, 'ai');
-                lastAIResponse = `There was an error connecting to Professor Pebble: ${error.message}. Please check your internet connection and try again.`;
-            }
+            const aiResponse = generateAIResponse(userMessage);
+            lastAIResponse = aiResponse;
+            
+            // Speak immediately
+            speakLastAIResponse();
+            
+            // Visual delay for "thinking" effect
+            setTimeout(() => {
+                displayMessage(aiResponse, 'ai');
+                saveMessageToFirestore(aiResponse, 'ai');
+                setUiBusy(false);
+            }, 750);
         }
 
-        /**
-         * Speaks the last AI response using SpeechSynthesisUtterance.
-         */
+        function setUiBusy(isBusy) {
+            isAwaitingAIResponse = isBusy;
+            sendButton.disabled = isBusy;
+            voiceInputButton.disabled = isBusy;
+        }
+
+        // --- Speech APIs ---
         function speakLastAIResponse() {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // Stop any ongoing speech
-                const utterance = new SpeechSynthesisUtterance(lastAIResponse);
-                utterance.lang = 'en-US';
-                // You can uncomment and modify this to pick a specific voice if desired
-                // const voices = window.speechSynthesis.getVoices();
-                // utterance.voice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google US English'));
-                utterance.onerror = (event) => {
-                    console.error('SpeechSynthesisUtterance error:', event);
-                };
-                window.speechSynthesis.speak(utterance);
-            } else {
-                console.warn("Speech synthesis not supported in this browser.");
-                // This message box for unsupported feature is only shown if the browser doesn't support it at all.
-                // The main flow should not create this on every speak attempt.
-                // const messageBox = document.createElement('div');
-                // messageBox.classList.add('ai-message', 'message-bubble');
-                // messageBox.textContent = "Your browser does not support speech synthesis.";
-                // chatMessages.appendChild(messageBox);
-                // scrollToBottom();
-            }
+            if (!('speechSynthesis' in window) || !lastAIResponse) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(lastAIResponse);
+            utterance.lang = 'en-US';
+            utterance.onerror = (e) => console.error("Speech synthesis error:", e.error);
+            window.speechSynthesis.speak(utterance);
         }
 
-        /**
-         * Initializes and manages Speech Recognition (Voice Input).
-         */
         function toggleVoiceInput() {
-            if (!('webkitSpeechRecognition' in window)) {
-                console.warn("Speech Recognition not supported in this browser.");
-                const messageBox = document.createElement('div');
-                messageBox.classList.add('ai-message', 'message-bubble');
-                messageBox.textContent = "Your browser does not support voice input.";
-                chatMessages.appendChild(messageBox);
-                scrollToBottom();
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Sorry, your browser does not support voice recognition.");
                 return;
             }
 
             if (!recognition) {
-                recognition = new webkitSpeechRecognition();
-                recognition.continuous = false; // Set to FALSE for single utterance (push-to-talk)
+                recognition = new SpeechRecognition();
+                recognition.continuous = false;
                 recognition.interimResults = true;
-                recognition.maxAlternatives = 1;
                 recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    isListening = true;
+                    voiceInputButton.textContent = 'Listening...';
+                    voiceInputButton.classList.add('bg-red-500');
+                    voiceInputButton.classList.remove('bg-amber-500');
+                    listeningStatus.style.display = 'inline';
+                };
+
+                recognition.onresult = (event) => {
+                    let finalTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        }
+                    }
+                    chatInput.value = finalTranscript;
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    if (event.error === 'not-allowed') {
+                        alert("Microphone permission was denied.");
+                    }
+                };
+
+                recognition.onend = () => {
+                    isListening = false;
+                    voiceInputButton.textContent = 'Voice';
+                    voiceInputButton.classList.remove('bg-red-500');
+                    voiceInputButton.classList.add('bg-amber-500');
+                    listeningStatus.style.display = 'none';
+                    if (chatInput.value.trim()) {
+                        sendMessage();
+                    }
+                };
             }
 
             if (isListening) {
@@ -699,97 +484,80 @@ Here are examples of the types of questions you should ask, based on the curricu
             } else {
                 recognition.start();
             }
-
-            recognition.onstart = () => {
-                isListening = true;
-                voiceInputButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 0110 16.129V18a1 1 0 102 0v-1.871h-.001z" clip-rule="evenodd" />
-                </svg> Stop Voice Input`; // Change text and icon
-                voiceInputButton.classList.add('bg-red-500', 'hover:bg-red-600');
-                voiceInputButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
-                listeningStatus.style.display = 'inline';
-                console.log('Speech recognition started.');
-            };
-
-            recognition.onresult = (event) => {
-                let interimTranscript = '';
-                let finalTranscript = '';
-
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
-                }
-
-                chatInput.value = finalTranscript || interimTranscript; // Show final or interim
-                chatInput.style.height = 'auto'; // Reset textarea height
-                chatInput.style.height = (chatInput.scrollHeight) + 'px'; // Adjust height
-                console.log('Speech recognized - Final:', finalTranscript, 'Interim:', interimTranscript);
-            };
-
-            recognition.onerror = (event) => {
-                console.error('Speech recognition error:', event.error);
-                listeningStatus.style.display = 'none';
-                voiceInputButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 0110 16.129V18a1 1 0 102 0v-1.871h-.001z" clip-rule="evenodd" />
-                </svg> Voice Input`; // Reset text and icon
-                voiceInputButton.classList.remove('bg-red-500', 'hover:bg-red-600');
-                voiceInputButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
-                isListening = false;
-
-                const errorMsg = document.createElement('div');
-                errorMsg.classList.add('ai-message', 'message-bubble');
-                if (event.error === 'not-allowed') {
-                    errorMsg.textContent = "Professor Pebble needs microphone permission for voice input. Please allow it in your browser settings.";
-                } else if (event.error === 'no-speech') {
-                    errorMsg.textContent = "Professor Pebble didn't hear any speech. Please speak louder or check your microphone.";
-                } else {
-                    errorMsg.textContent = `Voice input error: ${event.error}.`;
-                }
-                chatMessages.appendChild(errorMsg);
-                scrollToBottom();
-            };
-
-            recognition.onend = () => {
-                isListening = false;
-                voiceInputButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 0110 16.129V18a1 1 0 102 0v-1.871h-.001z" clip-rule="evenodd" />
-                </svg> Voice Input`; // Reset text and icon
-                voiceInputButton.classList.remove('bg-red-500', 'hover:bg-red-600');
-                voiceInputButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
-                listeningStatus.style.display = 'none';
-                console.log('Speech recognition ended.');
-                // Send the collected speech as a message if it's not empty
-                if (chatInput.value.trim() !== '') {
-                    sendMessage();
-                }
-            };
         }
-
-        // Event Listeners
+        
+        // --- Event Listeners ---
         sendButton.addEventListener('click', sendMessage);
-        speakButton.addEventListener('click', speakLastAIResponse);
         voiceInputButton.addEventListener('click', toggleVoiceInput);
-
-
-        // Allow sending message with Enter key (Shift + Enter for new line)
-        chatInput.addEventListener('keypress', function(e) {
+        chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // Prevent new line
+                e.preventDefault();
                 sendMessage();
             }
         });
-
-        // Auto-resize textarea based on content
         chatInput.addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = (this.scrollHeight) + 'px';
         });
 
-        // Call displayInitialAIMessage on window load
-        window.addEventListener('load', displayInitialAIMessage);
+    </script>
+
+    <script>
+        // --- JavaScript for the Canvas Background Animation ---
+        const canvas = document.getElementById('background-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        let particlesArray;
+
+        class Particle {
+            constructor(x, y, dirX, dirY, size, color) {
+                this.x = x; this.y = y; this.dirX = dirX; this.dirY = dirY; this.size = size; this.color = color;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2, false);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+            update() {
+                if (this.x > canvas.width || this.x < 0) this.dirX = -this.dirX;
+                if (this.y > canvas.height || this.y < 0) this.dirY = -this.dirY;
+                this.x += this.dirX;
+                this.y += this.dirY;
+                this.draw();
+            }
+        }
+
+        function init() {
+            particlesArray = [];
+            let numParticles = (canvas.height * canvas.width) / 9000;
+            for (let i = 0; i < numParticles; i++) {
+                let size = (Math.random() * 4) + 1;
+                let x = Math.random() * (innerWidth - size * 2) + size * 2;
+                let y = Math.random() * (innerHeight - size * 2) + size * 2;
+                let dirX = (Math.random() * .4) - .2;
+                let dirY = (Math.random() * .4) - .2;
+                let color = 'rgba(99, 102, 241, 0.6)';
+                particlesArray.push(new Particle(x, y, dirX, dirY, size, color));
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.clearRect(0, 0, innerWidth, innerHeight);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+            }
+        }
+
+        init();
+        animate();
+        window.addEventListener('resize', () => {
+            canvas.width = innerWidth;
+            canvas.height = innerHeight;
+            init();
+        });
     </script>
 </body>
 </html>
