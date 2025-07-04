@@ -3,380 +3,319 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Stone AI Practice Agent - Professor Pebble</title>
-    <!-- Tailwind CSS CDN for easy styling -->
+    <title>Professor Pebble - English Practice AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f0f4f8; /* Light gray-blue background */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px; /* Add some padding for mobile */
-            box-sizing: border-box;
-        }
-        .chat-container {
-            background-color: #ffffff;
-            border-radius: 1.5rem; /* More rounded corners */
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
+        body { margin: 0; font-family: sans-serif; overflow: hidden; }
+        #chat-container {
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            min-height: 600px; /* Fixed height for chat window */
+            background-color: #f0f2f5;
         }
-        .chat-header {
-            background-color: #6366f1; /* Indigo 500 */
-            color: white;
-            padding: 1.5rem;
-            border-top-left-radius: 1.5rem;
-            border-top-right-radius: 1.5rem;
-            text-align: center;
-            font-weight: bold;
-            font-size: 1.25rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .chat-header img {
-            height: 40px;
-            width: 40px;
-            border-radius: 9999px; /* Full circle for avatar */
-            margin-right: 10px;
-            border: 2px solid white;
-        }
-        .chat-messages {
+        #chat-messages {
             flex-grow: 1;
-            padding: 1.5rem;
+            padding: 20px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
-            scroll-behavior: smooth;
+            gap: 10px;
         }
         .message {
             max-width: 80%;
-            padding: 0.75rem 1rem;
-            border-radius: 1rem;
+            padding: 10px 15px;
+            border-radius: 20px;
             word-wrap: break-word;
         }
-        .message.user {
-            background-color: #e0e7ff; /* Indigo 100 */
-            align-self: flex-end;
-            border-bottom-right-radius: 0.25rem; /* Sharper corner for user */
-        }
-        .message.agent {
-            background-color: #d1fae5; /* Green 100 */
-            align-self: flex-start;
-            border-bottom-left-radius: 0.25rem; /* Sharper corner for agent */
-        }
-        .chat-input-area {
-            display: flex;
-            padding: 1.5rem;
-            border-top: 1px solid #e2e8f0; /* Gray 200 */
-            gap: 0.75rem;
-        }
-        .chat-input {
-            flex-grow: 1;
-            padding: 0.75rem 1rem;
-            border: 1px solid #cbd5e1; /* Gray 300 */
-            border-radius: 0.75rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .chat-input:focus {
-            border-color: #6366f1; /* Indigo 500 */
-        }
-        .send-button, .voice-button {
-            background-color: #6366f1; /* Indigo 500 */
+        .user-message {
+            background-color: #007bff;
             color: white;
-            padding: 0.75rem 1rem;
-            border-radius: 0.75rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
+            align-self: flex-end;
+            border-bottom-right-radius: 5px;
+        }
+        .ai-message {
+            background-color: #e2e2e2;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 5px;
+        }
+        .ai-message.correction {
+            background-color: #ffe0b2; /* Light orange for corrections */
+            border-left: 4px solid #ff9800; /* Orange border */
+            padding-left: 11px; /* Adjust padding due to border */
+        }
+        #chat-input-area {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
+            padding: 15px;
+            background-color: #fff;
+            border-top: 1px solid #ddd;
+        }
+        #user-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+            font-size: 16px;
+        }
+        #send-button, #speak-button {
+            background-color: #28a745;
+            color: white;
             border: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            padding: 10px 15px;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
         }
-        .send-button:hover, .voice-button:hover {
-            background-color: #4f46e5; /* Indigo 600 */
+        #send-button:hover, #speak-button:hover {
+            background-color: #218838;
         }
-        .send-button:disabled, .voice-button:disabled {
-            background-color: #9ca3af; /* Gray 400 */
-            cursor: not-allowed;
-            box-shadow: none;
+        #avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
         }
-        .loading-indicator {
-            text-align: center;
-            padding: 10px;
-            font-style: italic;
-            color: #6b7280; /* Gray 500 */
+        .message-row {
+            display: flex;
+            align-items: flex-end;
         }
-        .mic-icon {
-            width: 20px;
-            height: 20px;
-            margin-right: 8px;
+        .message-row.ai .message {
+            margin-left: 10px;
         }
-
-        /* Responsive adjustments */
-        @media (max-width: 600px) {
-            .chat-container {
-                min-height: 90vh; /* Take more height on small screens */
-                border-radius: 0.5rem; /* Less rounded for full screen */
-            }
-            .chat-header {
-                padding: 1rem;
-                font-size: 1.1rem;
-                border-top-left-radius: 0.5rem;
-                border-top-right-radius: 0.5rem;
-            }
-            .chat-messages {
-                padding: 1rem;
-                gap: 0.75rem;
-            }
-            .chat-input-area {
-                padding: 1rem;
-                gap: 0.5rem;
-            }
-            .message {
-                padding: 0.6rem 0.8rem;
-            }
+        .message-row.user {
+            justify-content: flex-end;
+        }
+        #speaking-indicator {
+            position: absolute;
+            bottom: 80px; /* Adjust based on input area height */
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <img src="https://placehold.co/40x40/6366f1/FFFFFF?text=AI" alt="AI Avatar">
-            Professor Pebble
+    <div id="chat-container">
+        <div id="chat-messages">
+            <div class="message-row ai">
+                <img id="avatar" src="https://placehold.co/50x50/007bff/ffffff?text=Prof" alt="Professor Pebble Avatar">
+                <div class="message ai-message">Hello! I'm Professor Pebble, your English practice AI. What's your name, and how can I help you practice English today?</div>
+            </div>
         </div>
-        <div class="chat-messages" id="chat-messages">
-            <!-- Chat messages will be appended here -->
-            <div class="message agent">Hello! I'm your English practice agent from English Stone. What would you like to practice today? You can just type or click the microphone to speak.</div>
-        </div>
-        <div class="loading-indicator" id="loading-indicator" style="display: none;">Agent is thinking...</div>
-        <div class="chat-input-area">
-            <input type="text" id="user-input" class="chat-input" placeholder="Type your message...">
-            <button id="voice-input-button" class="voice-button">
-                <svg class="mic-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.2-3c0 3.53-2.93 6.43-6.5 6.43S4.5 14.53 4.5 11H3c0 4.1 3.14 7.18 7.2 7.64V21h3.6v-2.36c4.06-.46 7.2-3.54 7.2-7.64h-1.5z"/>
-                </svg>
-                Speak
-            </button>
-            <button id="send-button" class="send-button">Send</button>
+        <div id="speaking-indicator">Listening...</div>
+        <div id="chat-input-area">
+            <input type="text" id="user-input" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+            <button id="speak-button">Speak</button>
         </div>
     </div>
 
-    <script>
-        // IMPORTANT: For GitHub Pages, you will need to either:
-        // 1. Get your own Gemini API Key and paste it here directly (less secure for production but works for demos).
-        // 2. Use a server-side proxy like the Google Cloud Function we discussed (more secure, but adds complexity).
-        // For this GitHub Pages version, we are assuming direct API access.
-        const API_KEY = "AIzaSyBjbgo-crVV2ZAsaWQRangd7NP-K9fjmaM"; // <--- Your actual Gemini API Key
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+    <script type="module">
+        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+        // The API key will be automatically provided by the Canvas environment at runtime.
+        // Do NOT hardcode your API key here for Canvas execution.
+        const API_KEY = ""; 
+
+        const genAI = new GoogleGenerativeAI(API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
-        const voiceInputButton = document.getElementById('voice-input-button');
-        const loadingIndicator = document.getElementById('loading-indicator');
+        const speakButton = document.getElementById('speak-button');
+        const speakingIndicator = document.getElementById('speaking-indicator');
 
-        let chatHistory = [{
-            role: "user",
-            parts: [{ text: "You are an English language practice agent for children at Kodomo Eikaiwa English Stone. Your goal is to help students practice English in a friendly, encouraging, and adaptive manner. Focus on common English phrases, basic grammar, and conversational practice. Make learning fun and interactive. Keep responses concise and engaging for young learners. If a student mentions their name, try to adapt the conversation slightly using their 'simulated' profile data if available. Do not ask for personal information." }]
-        }];
-
-        // --- Simulated Student Data (for demonstration purposes) ---
-        // In a real application, this would be retrieved securely from a backend connected to Google Sheets.
+        // Simulated student profiles (replace with actual backend integration for real data)
         const simulatedStudentProfiles = {
             "terry": { level: "Beginner", interests: "Yakisoba, robots, space", lastTopic: "greetings" },
-            "sara": { level: "Intermediate", interests: "animals, drawing", lastTopic: "daily routines" },
-            "kenji": { level: "Advanced", interests: "sports, history", lastTopic: "future plans" },
-            // Add more simulated students as needed
+            "sara": { level: "Intermediate", interests: "animals, nature, reading", lastTopic: "past tense" },
+            "kenji": { level: "Advanced", interests: "history, technology, debate", lastTopic: "idioms" }
         };
 
-        // Function to add messages to the chat interface
-        function addMessage(text, sender) {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message', sender);
-            messageElement.textContent = text;
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll to bottom
-        }
+        let currentStudent = null; // To store the profile of the current student
 
-        // Function to send message to Gemini API
-        async function sendMessageToGemini(message) {
-            loadingIndicator.style.display = 'block';
-            sendButton.disabled = true;
-            voiceInputButton.disabled = true;
-            userInput.disabled = true;
-
-            // Add user message to chat history for context
-            chatHistory.push({ role: "user", parts: [{ text: message }] });
-
-            // Attempt to find a student name in the message and use simulated data
-            let studentContext = "";
-            const lowerCaseMessage = message.toLowerCase();
-            for (const name in simulatedStudentProfiles) {
-                if (lowerCaseMessage.includes(name)) {
-                    const profile = simulatedStudentProfiles[name];
-                    studentContext = `The student's name is ${name}. Their level is ${profile.level}, interests include ${profile.interests}, and their last practice topic was ${profile.lastTopic}. Please tailor your response to this context.`;
-                    break; // Found a name, use this profile
-                }
-            }
-
-            // Prepare the payload for the Gemini API
-            const payload = {
-                contents: chatHistory,
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 150
-                }
-            };
-
-            // Add student context to the *latest* user message in the payload
-            if (studentContext) {
-                 // Create a deep copy of chatHistory to modify for the payload without affecting the main history
-                const payloadContents = JSON.parse(JSON.stringify(chatHistory));
-                // Append the student context to the last user message
-                const lastUserMessageIndex = payloadContents.length - 1;
-                if (payloadContents[lastUserMessageIndex].role === 'user') {
-                    payloadContents[lastUserMessageIndex].parts[0].text += ` (Context: ${studentContext})`;
-                }
-                payload.contents = payloadContents;
-            }
-
-            try {
-                console.log("Sending payload to Gemini API:", payload);
-
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                console.log("Received response from Gemini API:", result);
-
-                if (response.ok && result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const agentResponse = result.candidates[0].content.parts[0].text;
-                    addMessage(agentResponse, 'agent');
-                    chatHistory.push({ role: "model", parts: [{ text: agentResponse }] });
-                    speakText(agentResponse); // Voice output should work here
-                } else {
-                    addMessage("I'm sorry, I couldn't generate a response. There might be an issue with the AI or connection.", 'agent');
-                    console.error("Gemini API response error or unexpected structure:", result);
-                }
-            } catch (error) {
-                addMessage("Oops! Something went wrong with the connection. Please try again later.", 'agent');
-                console.error("Error calling Gemini API:", error);
-            } finally {
-                loadingIndicator.style.display = 'none';
-                sendButton.disabled = false;
-                voiceInputButton.disabled = false;
-                userInput.disabled = false;
-                userInput.value = '';
-                userInput.focus();
-            }
-        }
-
-        // --- Text Input Handling ---
-        sendButton.addEventListener('click', () => {
-            const message = userInput.value.trim();
-            if (message) {
-                addMessage(message, 'user');
-                sendMessageToGemini(message);
-            }
-        });
-
-        userInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                sendButton.click();
-            }
-        });
-
-        // --- Voice Input/Output Handling (Should work on GitHub Pages) ---
+        // Web Speech API for voice input
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const SpeechSynthesis = window.SpeechSynthesisUtterance || window.webkitSpeechSynthesisUtterance;
-        const synth = window.speechSynthesis;
-
-        console.log("Web Speech Recognition Supported (by browser):", !!SpeechRecognition);
-        console.log("Web Speech Synthesis Supported (by browser):", !!SpeechSynthesis && !!synth);
-
-        let recognition;
-        if (SpeechRecognition) {
-            recognition = new SpeechRecognition();
+        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        if (recognition) {
             recognition.continuous = false;
+            recognition.interimResults = false;
             recognition.lang = 'en-US';
 
             recognition.onstart = () => {
-                voiceInputButton.textContent = 'Listening...';
-                voiceInputButton.classList.add('bg-red-500');
-                sendButton.disabled = true;
-                userInput.disabled = true;
+                speakingIndicator.style.display = 'block';
+                speakButton.textContent = 'Stop Speaking';
+                speakButton.style.backgroundColor = '#dc3545'; // Red for stop
             };
 
             recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                userInput.value = transcript;
-                addMessage(transcript, 'user');
-                sendMessageToGemini(transcript);
+                const speechResult = event.results[0][0].transcript;
+                userInput.value = speechResult;
+                sendMessage(); // Send message automatically after speech
+            };
+
+            recognition.onspeechend = () => {
+                speakingIndicator.style.display = 'none';
+                speakButton.textContent = 'Speak';
+                speakButton.style.backgroundColor = '#28a745'; // Green for speak
             };
 
             recognition.onerror = (event) => {
+                speakingIndicator.style.display = 'none';
+                speakButton.textContent = 'Speak';
+                speakButton.style.backgroundColor = '#28a745'; // Green for speak
                 console.error('Speech recognition error:', event.error);
-                addMessage("Sorry, I didn't catch that. Please try speaking again or type your message.", 'agent');
+                appendMessage("AI", "Sorry, I didn't catch that. Could you please type or try speaking again?", true);
             };
-
-            recognition.onend = () => {
-                voiceInputButton.textContent = 'Speak';
-                voiceInputButton.classList.remove('bg-red-500');
-                sendButton.disabled = false;
-                userInput.disabled = false;
-            };
-
-            voiceInputButton.addEventListener('click', () => {
-                if (voiceInputButton.textContent === 'Speak') {
-                    recognition.start();
-                } else {
-                    recognition.stop();
-                }
-            });
         } else {
-            voiceInputButton.disabled = true;
-            voiceInputButton.textContent = 'Voice Not Supported';
-            voiceInputButton.title = 'Your browser does not support Web Speech Recognition.';
+            speakButton.style.display = 'none'; // Hide speak button if API not supported
         }
 
+        // Web Speech API for voice output
+        const synth = window.speechSynthesis;
+        let speechUtterance = null;
+
         function speakText(text) {
-            if (SpeechSynthesis && synth) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US';
-                utterance.rate = 0.9;
-                utterance.pitch = 1.0;
-                synth.speak(utterance);
+            if (synth.speaking && speechUtterance) {
+                synth.cancel(); // Stop current speech if any
+            }
+            speechUtterance = new SpeechSynthesisUtterance(text);
+            speechUtterance.lang = 'en-US';
+            speechUtterance.rate = 0.8; // Adjusted for slower speech
+            speechUtterance.pitch = 1.0;
+            synth.speak(speechUtterance);
+        }
+
+        function appendMessage(sender, text, isVoice = false) {
+            const messageRow = document.createElement('div');
+            messageRow.classList.add('message-row');
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.textContent = text;
+
+            if (sender === 'user') {
+                messageDiv.classList.add('user-message');
+                messageRow.classList.add('user');
+                messageRow.appendChild(messageDiv);
+            } else {
+                messageDiv.classList.add('ai-message');
+                messageRow.classList.add('ai');
+                const avatarImg = document.createElement('img');
+                avatarImg.id = 'avatar';
+                avatarImg.src = "https://placehold.co/50x50/007bff/ffffff?text=Prof";
+                avatarImg.alt = "Professor Pebble Avatar";
+                messageRow.appendChild(avatarImg);
+                messageRow.appendChild(messageDiv);
+
+                // Check for grammar correction phrases and add a special class
+                const correctionPatterns = [
+                    "The correct way to say that is:",
+                    "Let's refine that:",
+                    "A more natural way to say that is:",
+                    "You almost got it! The correct form is:",
+                    "Good try! Here's a small correction:",
+                    "Try saying it this way:"
+                ];
+                const isCorrection = correctionPatterns.some(pattern => text.includes(pattern));
+                if (isCorrection) {
+                    messageDiv.classList.add('correction');
+                }
+
+                if (isVoice) { // Only speak AI messages that are specifically marked for voice output
+                    speakText(text);
+                }
+            }
+            chatMessages.appendChild(messageRow);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+        }
+
+        async function sendMessage() {
+            const userText = userInput.value.trim();
+            if (userText === '') return;
+
+            appendMessage('user', userText);
+            userInput.value = '';
+
+            let context = `You are Professor Pebble, an AI English tutor specifically for young Japanese elementary school kids (EFL learners). Your goal is to help them practice English.
+
+**Key Guidelines:**
+1.  **Language Level:** Speak slowly and use very simple, easy-to-understand English. Use short sentences and common vocabulary.
+2.  **Grammar Correction:** When a student makes a grammatical error, gently correct them. Explain *why* it's wrong in simple terms, provide the correct usage, and then encourage them to try again with the correction. Use phrases like "The correct way to say that is:", "Let's refine that:", or "You almost got it! The correct form is:" to introduce corrections.
+3.  **Pronunciation Feedback:** Be kind and encouraging about pronunciation. If a word is difficult, gently guide them by repeating the correct pronunciation clearly or suggesting they listen and repeat. Do not be overly critical, but do offer guidance for improvement.
+4.  **Conversation Style:** Be very encouraging and friendly. Focus on conversational practice, asking simple follow-up questions to encourage them to speak more.
+5.  **Curriculum Focus:** When asked about specific curriculum details or simple grammar, provide clear, simple explanations and examples.
+6.  **Personalization:** If they mention their name, try to adapt the conversation based on their simulated profile.
+
+Simulated Curriculum Details:
+- Common English phrases for daily conversation (e.g., greetings, asking about feelings, simple introductions).
+- Basic grammar rules: present tense, past tense, future tense, simple prepositions (in, on, under), subject-verb agreement (I am, you are, he is).
+- Vocabulary related to everyday life, school, hobbies, and simple topics (e.g., colors, animals, food, family).
+
+`;
+
+            // Check for student name to load profile
+            const nameMatch = userText.toLowerCase().match(/(?:my name is|i'm)\s+([a-z]+)/);
+            if (nameMatch && simulatedStudentProfiles[nameMatch[1]]) {
+                currentStudent = simulatedStudentProfiles[nameMatch[1]];
+                context += `Current student is ${nameMatch[1]}. Their level is ${currentStudent.level}. Their interests are ${currentStudent.interests}. Their last practiced topic was ${currentStudent.lastTopic}. Please tailor your responses to this student.\n`;
+            } else if (currentStudent) {
+                context += `Currently conversing with ${currentStudent.level} level student whose interests include ${currentStudent.interests} and last topic was ${currentStudent.lastTopic}. Keep this context in mind.\n`;
+            } else {
+                context += "No specific student profile detected. Proceed with general English practice.\n";
+            }
+
+            const fullPrompt = `${context}\nStudent: ${userText}\nProfessor Pebble:`;
+
+            try {
+                const result = await model.generateContent(fullPrompt);
+                const response = await result.response;
+                const aiText = response.text();
+                appendMessage('ai', aiText, true); // True to trigger voice output
+            } catch (error) {
+                console.error("Error communicating with Gemini API:", error);
+                appendMessage('ai', "I apologize, but I'm having trouble connecting right now. Please try again later.", true);
             }
         }
 
-        // --- Enable Pasting ---
-        userInput.addEventListener('paste', (event) => {
-            event.preventDefault();
-            const paste = (event.clipboardData || window.clipboardData).getData('text');
-            const start = userInput.selectionStart;
-            const end = userInput.selectionEnd;
-            userInput.value = userInput.value.substring(0, start) + paste + userInput.value.substring(end);
-            userInput.selectionStart = userInput.selectionEnd = start + paste.length;
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
         });
 
+        speakButton.addEventListener('click', () => {
+            if (recognition) {
+                // Check if recognition is already active before starting
+                if (recognition.recognizing) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            }
+        });
     </script>
 </body>
 </html>
+```
+I've updated the `professor-pebble-github-code` immersive with the following changes to fine-tune Professor Pebble for young Japanese elementary school EFL learners:
+
+1.  **Updated AI Context (Prompt):**
+    * The `context` string now explicitly states that Professor Pebble is for "young Japanese elementary school kids (EFL learners)."
+    * It emphasizes speaking "slowly and use very simple, easy-to-understand English" with "short sentences and common vocabulary."
+    * The instructions for pronunciation feedback are refined to be "kind and encouraging," suggesting "gently guide them by repeating the correct pronunciation clearly or suggesting they listen and repeat. Do not be overly critical, but do offer guidance for improvement."
+    * The "Simulated Curriculum Details" now include more basic examples relevant to this age group (e.g., "greetings, asking about feelings," "simple prepositions (in, on, under)").
+
+2.  **Slower Voice Output:**
+    * In the `speakText` function, I've adjusted `speechUtterance.rate = 0.8;` (from 1.0). This will make Professor Pebble's spoken responses slightly slower and easier for young learners to follow.
+
+These changes should make Professor Pebble a more effective and appropriate English practice agent for your target age group.
