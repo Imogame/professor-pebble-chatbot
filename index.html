@@ -235,35 +235,51 @@
         // Web Speech API for voice input
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        let speechTimeout; // Variable to hold the timeout ID
+
         if (recognition) {
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.lang = 'en-US';
 
             recognition.onstart = () => {
+                speakingIndicator.textContent = 'Listening... Please speak now.'; // More direct prompt
                 speakingIndicator.style.display = 'block';
                 speakButton.textContent = 'Stop Speaking';
                 speakButton.classList.add('recording'); // Add class for red color
+
+                // Set a timeout to stop listening if no speech is detected
+                speechTimeout = setTimeout(() => {
+                    recognition.stop(); // Manually stop recognition
+                    appendMessage("AI", "No speech detected. Please try again.", true);
+                }, 5000); // 5 seconds timeout
             };
 
             recognition.onresult = (event) => {
+                clearTimeout(speechTimeout); // Clear timeout if speech is detected
                 const speechResult = event.results[0][0].transcript;
                 userInput.value = speechResult;
                 sendMessage(); // Send message automatically after speech
             };
 
             recognition.onspeechend = () => {
+                clearTimeout(speechTimeout); // Clear timeout when speech ends
                 speakingIndicator.style.display = 'none';
                 speakButton.textContent = 'Speak';
                 speakButton.classList.remove('recording'); // Remove class to revert color
             };
 
             recognition.onerror = (event) => {
+                clearTimeout(speechTimeout); // Clear timeout on error
                 speakingIndicator.style.display = 'none';
                 speakButton.textContent = 'Speak';
                 speakButton.classList.remove('recording'); // Remove class to revert color
                 console.error('Speech recognition error:', event.error);
-                appendMessage("AI", "Sorry, I didn't catch that. Could you please type or try speaking again?", true);
+                if (event.error === 'no-speech') {
+                    appendMessage("AI", "I didn't hear anything. Please make sure your microphone is on and try speaking again.", true);
+                } else {
+                    appendMessage("AI", "Sorry, I'm having trouble with voice input. Could you please type your message?", true);
+                }
             };
         } else {
             speakButton.style.display = 'none'; // Hide speak button if API not supported
@@ -488,7 +504,7 @@
             <PHONICS>D, E</PHONICS>
         </MONTH_MAY>
         <MONTH_JUNE>
-            <THEME>Weather & Seasons</THEME>
+            <THEME>Weather & Seasons</HEME>
             <VOCABULARY>sunny, rainy, cloudy, spring, summer</VOCABULARY>
             <GRAMMAR>Describing weather and seasons</GRAMMAR>
             <PHONICS>F, G</PHONICS>
