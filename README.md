@@ -1,1 +1,1 @@
-# professor-pebble-chatbot
+# Professor-Pebble-chatbot
