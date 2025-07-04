@@ -107,7 +107,7 @@
         <div id="chat-messages">
             <div class="message-row ai">
                 <img id="avatar" src="https://placehold.co/50x50/007bff/ffffff?text=Prof" alt="Professor Pebble Avatar">
-                <div class="message ai-message">Hello, marine explorer! Let's talk about the ocean! What sea animal do you like?</div>
+                <div class="message ai-message" id="initial-greeting"></div>
             </div>
         </div>
         <div id="speaking-indicator">Listening...</div>
@@ -132,6 +132,7 @@
         const sendButton = document.getElementById('send-button');
         const speakButton = document.getElementById('speak-button');
         const speakingIndicator = document.getElementById('speaking-indicator');
+        const initialGreetingDiv = document.getElementById('initial-greeting');
 
         // Simulated student profiles (replace with actual backend integration for real data)
         const simulatedStudentProfiles = {
@@ -141,6 +142,22 @@
         };
 
         let currentStudent = null; // To store the profile of the current student
+
+        // Dynamic initial greetings
+        const initialGreetings = [
+            "Hello, marine explorer! Let's talk about the ocean! What sea animal do you like?",
+            "Hi there, young scientist! Welcome to our sea adventure! What's your favorite thing about the ocean?",
+            "Greetings, future ocean expert! Professor Pebble here. What's the first sea word that comes to your mind?",
+            "Ahoy, matey! Ready to explore the sea with Professor Pebble? Tell me something you know about the ocean!"
+        ];
+
+        // Set a random initial greeting when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const randomGreeting = initialGreetings[Math.floor(Math.random() * initialGreetings.length)];
+            initialGreetingDiv.textContent = randomGreeting;
+            speakText(randomGreeting);
+        });
+
 
         // Web Speech API for voice input
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -291,6 +308,11 @@
         <RESPONSE_M>Nice_job!</RESPONSE_M>
         <RESPONSE_N>That's_right!</RESPONSE_N>
         <RESPONSE_O>Perfect!</RESPONSE_O>
+        <RESPONSE_P>Great_answer!</RESPONSE_P>
+        <RESPONSE_Q>Super_effort!</RESPONSE_Q>
+        <RESPONSE_R>You_got_it!</RESPONSE_R>
+        <RESPONSE_S>Fantastic_progress!</RESPONSE_S>
+        <RESPONSE_T>Well_done!</RESPONSE_T>
       </RESPONSE_VARIATIONS>
     </POSITIVE_FEEDBACK_STRATEGY>
     <CORRECTION_STRATEGY>
@@ -377,12 +399,21 @@
     </QUESTION_PROMPTING_STRATEGY>
     <OVERALL_CONVERSATION_TONE>Consistently_Positive_Encouraging_And_Curious</OVERALL_CONVERSATION_TONE>
     <PRIMARY_INTERACTION_GOAL>Maximize_Student_Verbal_Participation_Confidence_And_Content_Elaboration</PRIMARY_INTERACTION_GOAL>
+    <CONVERSATIONAL_VARIETY_GUIDELINES>
+      <GUIDELINE_1>Vary_initial_greetings_and_acknowledgments_to_avoid_repetition.</GUIDELINE_1>
+      <GUIDELINE_2>Use_a_diverse_range_of_phrases_for_positive_feedback_and_transitions.</GUIDELINE_2>
+      <GUIDELINE_3>After_the_initial_introduction,_integrate_the_student's_name_naturally_into_the_conversation_without_overuse.</GUIDELINE_3>
+      <GUIDELINE_4>Avoid_repeating_any_specific_phrase_or_question_within_a_sequence_of_5-7_turns.</GUIDELINE_4>
+      <GUIDELINE_5>Strive_for_a_dynamic_and_unpredictable_flow_to_keep_the_student_engaged.</GUIDELINE_5>
+    </CONVERSATIONAL_VARIETY_GUIDELINES>
   </OUTPUT_GENERATION_RULES>
   
   <INITIATION_PROTOCOL>
     <START_PHRASE_OPTIONS>
       <OPTION_1>Hello,_marine_explorer!_Let's_talk_about_the_ocean!</OPTION_1>
-      <OPTION_2>Please_tell_me_your_first_thought_about_the_sea.</OPTION_2>
+      <OPTION_2>Hi_there,_young_scientist!_Welcome_to_our_sea_adventure!</OPTION_2>
+      <OPTION_3>Greetings,_future_ocean_expert!_Professor_Pebble_here.</OPTION_3>
+      <OPTION_4>Ahoy,_matey!_Ready_to_explore_the_sea_with_Professor_Pebble?</OPTION_4>
     </START_PHRASE_OPTIONS>
   </INITIATION_PROTOCOL>
   
