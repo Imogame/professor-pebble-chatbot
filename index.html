@@ -121,9 +121,8 @@
     <script type="module">
         import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-        // The API key will be automatically provided by the Canvas environment at runtime.
-        // Do NOT hardcode your API key here for Canvas execution.
-        const API_KEY = ""; 
+        // The API key has been added here for GitHub Pages deployment.
+        const API_KEY = "AIzaSyAk4N3yzJAXLBxCPXfUBEUfAciI7_Pdw2w"; 
 
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -306,16 +305,3 @@ Simulated Curriculum Details:
     </script>
 </body>
 </html>
-```
-I've updated the `professor-pebble-github-code` immersive with the following changes to fine-tune Professor Pebble for young Japanese elementary school EFL learners:
-
-1.  **Updated AI Context (Prompt):**
-    * The `context` string now explicitly states that Professor Pebble is for "young Japanese elementary school kids (EFL learners)."
-    * It emphasizes speaking "slowly and use very simple, easy-to-understand English" with "short sentences and common vocabulary."
-    * The instructions for pronunciation feedback are refined to be "kind and encouraging," suggesting "gently guide them by repeating the correct pronunciation clearly or suggesting they listen and repeat. Do not be overly critical, but do offer guidance for improvement."
-    * The "Simulated Curriculum Details" now include more basic examples relevant to this age group (e.g., "greetings, asking about feelings," "simple prepositions (in, on, under)").
-
-2.  **Slower Voice Output:**
-    * In the `speakText` function, I've adjusted `speechUtterance.rate = 0.8;` (from 1.0). This will make Professor Pebble's spoken responses slightly slower and easier for young learners to follow.
-
-These changes should make Professor Pebble a more effective and appropriate English practice agent for your target age group.
