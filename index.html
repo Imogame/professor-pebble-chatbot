@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Professor Pebble: English Practice AI</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Inter Font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -194,11 +192,7 @@
             Professor Pebble: Your English Practice AI
         </div>
         <div class="chat-messages" id="chatMessages">
-            <!-- Messages will be appended here -->
-            <div class="ai-message message-bubble">
-                Welcome to English stone, I'm your AI tutor Professor Pebble. I'm ready to help with your English lessons for younger kids! We can review past topics like Colors or Fruits, or practice this month's targets about Spring & Clothes. Which sounds fun?
             </div>
-        </div>
         <div class="chat-input-area">
             <textarea id="chatInput" class="chat-input" placeholder="Type your message..." rows="1"></textarea>
             <button id="sendButton" class="chat-button send-button">
@@ -246,9 +240,14 @@
         let currentUserId = null;
         let isAuthReady = false;
 
-        // Global chat history for speech synthesis
-        let chatHistory = [];
-        let lastAIResponse = "Welcome to English stone, I'm your AI tutor Professor Pebble. I'm ready to help with your English lessons for younger kids! We can review past topics like Colors or Fruits, or practice this month's targets about Spring & Clothes. Which sounds fun?";
+        // Global chat history for Gemini API calls
+        // This will store messages in the format required by Gemini API: { role: "user", parts: [{ text: "..." }] } or { role: "model", parts: [{ text: "..." }] }
+        // The initial AI message is crucial for setting the context for the AI from the very start.
+        let geminiChatHistory = [{
+            role: "model",
+            parts: [{ text: "Welcome to English Stone! I'm Professor Pebble. I'm ready to help with your English lessons! We can review past topics like Colors, Fruits, or Weather, or practice new words about the Sea. Which sounds fun?" }]
+        }];
+        let lastAIResponse = "Welcome to English Stone! I'm Professor Pebble. I'm ready to help with your English lessons! We can review past topics like Colors, Fruits, or Weather, or practice new words about the Sea. Which sounds fun?";
 
         // Speech Recognition variables
         let recognition;
@@ -263,17 +262,14 @@
             db = getFirestore(app);
             auth = getAuth(app);
 
-            // Authenticate user
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUserId = user.uid;
                     isAuthReady = true;
                     console.log("Authenticated user ID:", currentUserId);
                     userIdDisplay.textContent = `Your User ID: ${currentUserId}`;
-                    // Load existing messages after authentication
                     loadChatMessages();
                 } else {
-                    // Sign in anonymously if no user is found or custom token is not provided
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
@@ -282,26 +278,32 @@
                         }
                     } catch (error) {
                         console.error("Error during Firebase authentication:", error);
-                        // Fallback to a random ID if authentication fails
-                        currentUserId = crypto.randomUUID();
+                        currentUserId = crypto.randomUUID(); // Fallback to a random ID
                         isAuthReady = true;
                         userIdDisplay.textContent = `Your User ID (Anonymous): ${currentUserId}`;
                         console.log("Using anonymous user ID due to authentication error:", currentUserId);
-                        // Still try to load messages, though they might be empty for a new anonymous user
-                        loadChatMessages();
+                        displayInitialAIMessage(); // Display initial message if auth fails
                     }
                 }
             });
         } else {
             console.error("Firebase config is not available. Chat history will not be saved.");
-            // Proceed without Firebase if config is missing
             currentUserId = crypto.randomUUID();
             isAuthReady = true;
             userIdDisplay.textContent = `Your User ID (Offline): ${currentUserId}`;
             console.log("Using offline user ID:", currentUserId);
-            // Display initial message
-            displayMessage(lastAIResponse, 'ai');
-            speakLastAIResponse(); // Speak initial message even if offline
+            displayInitialAIMessage(); // Display initial message
+        }
+
+        /**
+         * Displays the initial AI welcome message.
+         */
+        function displayInitialAIMessage() {
+            // Only display if no messages are currently in the chat (prevents duplicates on load)
+            if (chatMessages.children.length === 0) {
+                displayMessage(geminiChatHistory[0].parts[0].text, 'ai');
+                speakLastAIResponse(); // Speak initial message
+            }
         }
 
         /**
@@ -311,40 +313,46 @@
         function loadChatMessages() {
             if (!isAuthReady || !db || !currentUserId) {
                 console.log("Firebase not ready or user ID not available to load messages.");
+                displayInitialAIMessage(); // Ensure initial message is shown if Firebase isn't fully ready
                 return;
             }
 
-            // Define the collection path for private user data
             const chatCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/english_practice_chats`);
-
-            // Query to get messages
             const q = query(chatCollectionRef);
 
             onSnapshot(q, (snapshot) => {
-                chatMessages.innerHTML = ''; // Clear existing messages before adding new ones
+                chatMessages.innerHTML = ''; // Clear existing messages
                 const loadedMessages = [];
                 snapshot.forEach((doc) => {
                     const data = doc.data();
                     loadedMessages.push(data);
                 });
 
-                // Sort messages by timestamp client-side as orderBy is avoided
+                // Sort messages by timestamp client-side
                 loadedMessages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
 
-                loadedMessages.forEach(data => {
-                    displayMessage(data.text, data.sender);
-                    if (data.sender === 'ai') {
-                        lastAIResponse = data.text; // Update last AI response for speak button
-                    }
-                });
+                geminiChatHistory = []; // Reset Gemini history
+                if (loadedMessages.length === 0) {
+                     // If no history, add the default AI welcome message to history
+                    geminiChatHistory.push({
+                        role: "model",
+                        parts: [{ text: lastAIResponse }] // Use the default initial message
+                    });
+                    displayInitialAIMessage(); // Display the welcome message if chat is empty
+                } else {
+                    loadedMessages.forEach(data => {
+                        displayMessage(data.text, data.sender);
+                        // Rebuild geminiChatHistory from loaded messages
+                        geminiChatHistory.push({ role: data.sender === 'user' ? 'user' : 'model', parts: [{ text: data.text }] });
+                        if (data.sender === 'ai') {
+                            lastAIResponse = data.text; // Update last AI response for speak button
+                        }
+                    });
+                }
                 scrollToBottom();
             }, (error) => {
                 console.error("Error listening to chat messages:", error);
-                // Display initial message if there's an error loading history
-                if (chatMessages.children.length === 0) {
-                    displayMessage(lastAIResponse, 'ai');
-                    speakLastAIResponse(); // Speak initial message if history fails to load
-                }
+                displayInitialAIMessage(); // Display initial message if there's an error loading history
             });
         }
 
@@ -384,6 +392,9 @@
             chatInput.value = ''; // Clear input immediately
             chatInput.style.height = 'auto'; // Reset textarea height
 
+            // Add user message to Gemini's chat history for context
+            geminiChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
+
             // Add user message to Firestore
             if (isAuthReady && db && currentUserId) {
                 try {
@@ -402,13 +413,12 @@
             loadingBubble.classList.add('loading-indicator', 'message-bubble');
             loadingBubble.id = 'loadingIndicator';
             loadingBubble.textContent = 'Professor Pebble is thinking...';
-            loadingBubble.style.display = 'block'; // Make sure it's visible
+            loadingBubble.style.display = 'block';
             chatMessages.appendChild(loadingBubble);
             scrollToBottom();
 
-            try {
-                // Call Gemini API
-                const lessonPlan = `
+            // Trimmed Lesson Plan (April, May, June, July only)
+            const lessonPlan = `
                 April: Colors & Shapes
                 • Lesson 1: Hello Colors!
                     o Theme: Identifying and naming basic colors.
@@ -522,317 +532,59 @@
                     o Speaking/Pronunciation (20 mins): "What can you do at the sea?" pair interviews. Practice verb pronunciation.
                     o Writing (5 mins): Complete sentences: "I can ____ at the sea."
                     o Wrap-up/Review (5 mins): Review action verbs.
+            `;
 
-                August: Summer Fun
-                • Lesson 1: Summer Activities
-                    o Theme: Talking about common summer activities.
-                    o Grammar Focus: Simple present tense ("I go swimming," "We play outside.")
-                    o Vocabulary Focus: swim, play, run, jump, ride (a bike), eat (ice cream), go to the park, beach, pool
-                    o Warm-up (5 mins): "Summer Word Association" - Students say words related to summer.
-                    o Reading/Listening (15 mins): Read a short story about kids enjoying summer vacation. Students identify the activities.
-                    o Speaking/Pronunciation (20 mins): "My Summer Fun" - Students draw a picture of their favorite summer activity and describe it to a partner. Practice verb pronunciation.
-                    o Writing (5 mins): Write 2-3 sentences about what they like to do in summer.
-                    o Wrap-up/Review (5 mins): Review summer activity vocabulary. Preview: Talking about places we visit.
+            // System Instruction (explicitly defined for each call for robustness)
+            const systemInstruction = `You are Professor Pebble, an EFL (English as a Foreign Language) children's teacher for English Stone. Your goal is to help young Japanese learners (Elementary Grades 2-3) improve their English based on the provided lesson plan. Their English ability is very low.
 
-                • Lesson 2: Places We Visit
-                    o Theme: Naming and describing places people go during summer.
-                    o Grammar Focus: Simple present tense ("It is fun," "I go to the zoo.") Prepositions of place (at, to).
-                    o Vocabulary Focus: zoo, park, beach, museum, mountains, lake, amusement park, vacation
-                    o Warm-up (5 mins): "Where Am I?" - Teacher describes a summer place, students guess.
-                    o Reading/Listening (15 mins): Listen to short descriptions of different summer destinations. Students match descriptions to pictures.
-                    o Speaking/Pronunciation (20 mins): "Dream Summer Trip" - Students talk about a place they want to visit and why. Pair activity.
-                    o Writing (5 mins): Write 2-3 sentences about a place they visited or want to visit.
-                    o Wrap-up/Review (5 mins): Review place vocabulary. Preview: Describing summer feelings.
+The current month for new targets is July.
 
-                • Lesson 3: Summer Feelings
-                    o Theme: Expressing feelings related to summer.
-                    o Grammar Focus: Using "I feel..." or "It is..." with adjectives.
-                    o Vocabulary Focus: happy, excited, hot, warm, sunny, relaxed, tired, fun
-                    o Warm-up (5 mins): "Feeling Faces" - Students show different feelings with their faces.
-                    o Reading/Listening (15 mins): Read simple sentences describing summer feelings (e.g., "I feel hot when it's sunny.").
-                    o Speaking/Pronunciation (20 mins): "Summer Mood Board" - Students draw or find pictures that represent summer feelings and explain them. Group discussion.
-                    o Writing (5 mins): Complete sentences: "In summer, I feel ____ because ____."
-                    o Wrap-up/Review (5 mins): Review feeling adjectives. Preview: Back to school next month.
+Your current focus is to:
+1.  **Review past lessons:** Offer to review topics from **April (Colors & Shapes), May (Fruits & Vegetables), and June (Weather & Seasons)**.
+2.  **Practice current month's targets:** Guide practice for **July's** theme (At the Sea).
 
-                September: Back to School
-                • Lesson 1: My Classroom
-                    o Theme: Identifying and naming objects in the classroom.
-                    o Grammar Focus: "There is/are" ("There is a board," "There are many chairs."), "This is/These are."
-                    o Vocabulary Focus: desk, chair, board, book, pencil, pen, eraser, bag, crayon, table, door, window
-                    o Warm-up (5 mins): "Classroom Scavenger Hunt" - Students find and point to objects as the teacher calls them out.
-                    o Reading/Listening (15 mins): Read a simple text describing a classroom. Students identify the objects mentioned.
-                    o Speaking/Pronunciation (20 mins): "Describe Your Desk" - Students describe the items on their desk to a partner. Practice "There is/are."
-                    o Writing (5 mins): Draw their classroom and label 3-4 objects.
-                    o Wrap-up/Review (5 mins): Review classroom vocabulary. Preview: Talking about school supplies.
+When responding:
+* Keep your language **extremely simple**, using **1-3 word sentences** and **only basic vocabulary** from the curriculum.
+* Ask **ONLY direct, closed-ended questions** that require a very specific, short answer (e.g., "Yes.", "No.", "Red.", "Apple.", "Swim.").
+* **Always control the conversation.** After a student responds, immediately ask the *next simple question* to guide them. Do not wait for them to ask.
+* **Never ask open-ended questions** like "What else?", "Tell me more?", "Why?", or "How?".
+* Provide choices or clear prompts when possible.
+* Be **positive and encouraging** at all times.
+* If the student gives a good answer, say "Good!" or "Yes!" and then ask the next question related to the topic.
+* If the student gives a wrong answer, gently correct with the right word/phrase and then ask again or move to a simpler question. Example: Student says "Blue." You say: "No, it's red. Is it red?" or "It's red. What color is this?"
 
-                • Lesson 2: School Supplies
-                    o Theme: Naming and identifying common school supplies.
-                    o Grammar Focus: "I have a..." "Do you have...?" Plural nouns.
-                    o Vocabulary Focus: notebook, ruler, glue, scissors, backpack, colored pencils, markers, paper
-                    o Warm-up (5 mins): "Show Me Your..." - Teacher calls out a supply, students hold it up.
-                    o Reading/Listening (15 mins): Listen to a song about school supplies. Students sing along.
-                    o Speaking/Pronunciation (20 mins): "School Supply Swap" - Students ask partners if they have certain supplies and practice sharing.
-                    o Writing (5 mins): Make a list of 4-5 school supplies they use.
-                    o Wrap-up/Review (5 mins): Review school supply vocabulary. Preview: Talking about school activities.
+Here are examples of the types of questions you should ask, based on the curriculum:
+* For Colors: "Is this red?" "What color is this? Red or blue?"
+* For Shapes: "Is it a circle?" "What shape is this? Square or triangle?"
+* For Fruits: "Do you like apples?" "Is this an apple or a banana?"
+* For Vegetables: "Do you eat carrots?" "Is this a tomato or a potato?"
+* For Weather: "Is it sunny today?" "Is it raining?"
+* For Seasons: "Is spring warm?" "Is summer hot?"
+* For Sea (July): "Can you see a fish?" "Is this a crab or a starfish?" "What color is the fish?" "Can you swim at the sea?"
+`;
 
-                • Lesson 3: School Activities
-                    o Theme: Describing actions and activities done at school.
-                    o Grammar Focus: Simple present tense verbs ("We read," "We write," "We play.")
-                    o Vocabulary Focus: read, write, draw, sing, play, learn, listen, speak, study, eat (lunch)
-                    o Warm-up (5 mins): "School Action Charades" - Students act out school activities.
-                    o Reading/Listening (15 mins): Read a short text about a typical school day. Students identify the actions.
-                    o Speaking/Pronunciation (20 mins): "My Favorite School Activity" - Students share their favorite activity and explain why. Group discussion.
-                    o Writing (5 mins): Write 2-3 sentences about what they do at school.
-                    o Wrap-up/Review (5 mins): Review school activity verbs. Preview: Fall and Halloween next month.
+            // The 'contents' array sent to Gemini API should alternate between user and model roles.
+            // The initial system instruction is added as a 'system' role.
+            const fullPromptContents = [
+                { role: "system", parts: [{ text: systemInstruction }] },
+                { role: "system", parts: [{ text: `Lesson Plan:\n${lessonPlan}` }] },
+                ...geminiChatHistory // Include the full conversation history
+            ];
 
-                October: Autumn & Halloween
-                • Lesson 1: Autumn Colors
-                    o Theme: Identifying colors associated with autumn.
-                    o Grammar Focus: Simple present tense ("The leaves are brown," "It is orange.")
-                    o Vocabulary Focus: red, orange, yellow, brown, green (review), leaf/leaves, tree, fall
-                    o Warm-up (5 mins): "Autumn Color Hunt" - Students identify autumn colors in the classroom or from pictures.
-                    o Reading/Listening (15 mins): Read a short poem or story about autumn leaves. Students identify the colors.
-                    o Speaking/Pronunciation (20 mins): "My Favorite Autumn Color" - Students discuss their favorite autumn color and why. Pair activity.
-                    o Writing (5 mins): Draw an autumn tree and color its leaves, labeling the colors.
-                    o Wrap-up/Review (5 mins): Review autumn colors. Preview: Talking about autumn activities.
+            const apiKey = ""; // Canvas will automatically provide this - **REPLACE THIS WITH YOUR SECURE FUNCTION CALL**
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
-                • Lesson 2: Autumn Activities
-                    o Theme: Describing activities done in autumn.
-                    o Grammar Focus: Simple present tense verbs ("I play in leaves," "We wear jackets.")
-                    o Vocabulary Focus: play (in leaves), rake, jump, wear (a jacket/sweater), drink (hot chocolate), pumpkin, apple
-                    o Warm-up (5 mins): "Autumn Action Freeze" - Teacher calls out an activity, students freeze in a pose.
-                    o Reading/Listening (15 mins): Listen to a short audio clip about autumn traditions. Students note the activities.
-                    o Speaking/Pronunciation (20 mins): "What I Do in Autumn" - Students share one activity they like to do in autumn. Group sharing.
-                    o Writing (5 mins): Write 2-3 sentences about their favorite autumn activity.
-                    o Wrap-up/Review (5 mins): Review autumn activity vocabulary. Preview: Halloween fun.
+            const payload = { contents: fullPromptContents }; // Send the full history and system instruction
 
-                • Lesson 3: Happy Halloween!
-                    o Theme: Learning Halloween-related vocabulary.
-                    o Grammar Focus: "I see a..." "It is a..."
-                    o Vocabulary Focus: ghost, pumpkin, witch, bat, cat, candy, costume, trick-or-treat, scary, happy
-                    o Warm-up (5 mins): "Halloween Word Scramble" - Unscramble simple Halloween words.
-                    o Reading/Listening (15 mins): Read a very simple Halloween story. Students identify characters/objects.
-                    o Speaking/Pronunciation (20 mins): "My Halloween Costume" - Students describe a costume they like or want to wear. Pair activity.
-                    o Writing (5 mins): Draw a Halloween picture and label 2-3 items.
-                    o Wrap-up/Review (5 mins): Review Halloween vocabulary. Preview: Food next month.
-
-                November: Food & Meals
-                • Lesson 1: My Favorite Foods
-                    o Theme: Identifying and naming common foods.
-                    o Grammar Focus: "I like/don't like..." "It is delicious."
-                    o Vocabulary Focus: pizza, pasta, rice, bread, chicken, fish, soup, salad, fruit (review), vegetable (review), delicious, yummy
-                    o Warm-up (5 mins): "Food Flashcard Quick Say" - Students quickly name foods from flashcards.
-                    o Reading/Listening (15 mins): Read a simple text where different children talk about their favorite foods. Students identify the foods.
-                    o Speaking/Pronunciation (20 mins): "Food Interview" - Students interview a partner about their favorite and least favorite foods.
-                    o Writing (5 mins): Write 2-3 sentences about their favorite foods.
-                    o Wrap-up/Review (5 mins): Review food vocabulary. Preview: Talking about meals.
-
-                • Lesson 2: Meals of the Day
-                    o Theme: Learning about breakfast, lunch, and dinner.
-                    o Grammar Focus: Simple present tense ("I eat breakfast," "We have lunch at school.")
-                    o Vocabulary Focus: breakfast, lunch, dinner, eat, drink, milk, juice, water, eggs, sandwich, rice, soup
-                    o Warm-up (5 mins): "Meal Time Match" - Match pictures of meals to times of day.
-                    o Reading/Listening (15 mins): Listen to short descriptions of what people eat for different meals.
-                    o Speaking/Pronunciation (20 mins): "My Daily Meals" - Students describe what they usually eat for breakfast, lunch, and dinner. Group sharing.
-                    o Writing (5 mins): Write one sentence for each meal (e.g., "For breakfast, I eat toast.").
-                    o Wrap-up/Review (5 mins): Review meal vocabulary. Preview: Describing how food tastes.
-
-                • Lesson 3: How Does It Taste?
-                    o Theme: Describing the taste of food.
-                    o Grammar Focus: Using adjectives to describe taste ("It is sweet," "The lemon is sour.")
-                    o Vocabulary Focus: sweet, sour, salty, bitter, spicy, delicious, yummy, good, bad
-                    o Warm-up (5 mins): "Taste Test (Imaginary)" - Teacher describes a food, students say how it tastes.
-                    o Reading/Listening (15 mins): Read simple sentences describing food tastes (e.g., "Chocolate is sweet.").
-                    o Speaking/Pronunciation (20 mins): "Food Opinion" - Students describe the taste of various foods (from flashcards or pictures). Pair activity.
-                    o Writing (5 mins): Write 2-3 sentences describing the taste of different foods.
-                    o Wrap-up/Review (5 mins): Review taste adjectives. Preview: Winter and holidays next month.
-
-                December: Winter & Holidays
-                • Lesson 1: Winter Weather
-                    o Theme: Describing winter weather conditions.
-                    o Grammar Focus: Simple present tense ("It is cold," "It is snowing.")
-                    o Vocabulary Focus: cold, snow, ice, windy (review), warm (review), jacket, hat, gloves, scarf
-                    o Warm-up (5 mins): "Winter Clothes Match" - Match winter clothing to pictures.
-                    o Reading/Listening (15 mins): Read a short story about a snowy day. Students identify weather words.
-                    o Speaking/Pronunciation (20 mins): "What do you wear in winter?" - Students describe their winter clothes. Pair activity.
-                    o Writing (5 mins): Draw a winter scene and write 2-3 sentences about the weather.
-                    o Wrap-up/Review (5 mins): Review winter weather and clothing vocabulary. Preview: Winter activities.
-
-                • Lesson 2: Winter Activities
-                    o Theme: Talking about activities done in winter.
-                    o Grammar Focus: Simple present tense verbs ("I play in the snow," "We go skiing.")
-                    o Vocabulary Focus: play (in the snow), build (a snowman), ski, snowboard, skate, drink (hot chocolate), stay (inside)
-                    o Warm-up (5 mins): "Winter Action Charades" - Students act out winter activities.
-                    o Reading/Listening (15 mins): Listen to short descriptions of winter fun. Students identify the activities.
-                    o Speaking/Pronunciation (20 mins): "My Favorite Winter Activity" - Students share their favorite winter activity and explain why. Group discussion.
-                    o Writing (5 mins): Write 2-3 sentences about what they like to do in winter.
-                    o Wrap-up/Review (5 mins): Review winter activity vocabulary. Preview: Holiday celebrations.
-
-                • Lesson 3: Happy Holidays!
-                    o Theme: Learning basic vocabulary related to holidays (e.g., Christmas, New Year).
-                    o Grammar Focus: "I like..." "We celebrate..."
-                    o Vocabulary Focus: present, gift, tree, Santa Claus, happy, family (review), celebrate, party, sing, dance
-                    o Warm-up (5 mins): "Holiday Word Brainstorm" - Students brainstorm words related to holidays.
-                    o Reading/Listening (15 mins): Read a simple story about a holiday celebration. Students identify key holiday items.
-                    o Speaking/Pronunciation (20 mins): "My Favorite Holiday" - Students share their favorite holiday and one thing they do to celebrate. Pair activity.
-                    o Writing (5 mins): Draw a picture of a holiday celebration and label 2-3 items.
-                    o Wrap-up/Review (5 mins): Review holiday vocabulary. Preview: New Year and home next month.
-
-                January: My Home
-                • Lesson 1: Rooms in My House
-                    o Theme: Identifying and naming different rooms in a house.
-                    o Grammar Focus: "This is the..." "There is a..."
-                    o Vocabulary Focus: living room, bedroom, kitchen, bathroom, dining room, house, home, door, window (review)
-                    o Warm-up (5 mins): "Room Flashcard Match" - Match room names to pictures.
-                    o Reading/Listening (15 mins): Read a simple text describing a house and its rooms. Students identify the rooms.
-                    o Speaking/Pronunciation (20 mins): "My Dream House" - Students describe their ideal house, focusing on the rooms. Pair activity.
-                    o Writing (5 mins): Draw a simple floor plan of a house and label 2-3 rooms.
-                    o Wrap-up/Review (5 mins): Review room vocabulary. Preview: Furniture in the rooms.
-
-                • Lesson 2: Furniture & Objects
-                    o Theme: Naming common furniture and objects found in rooms.
-                    o Grammar Focus: "There is a/an..." "There are some..." Prepositions of place (on, in, under).
-                    o Vocabulary Focus: bed, sofa, table, chair, TV, lamp, rug, closet, book (review), toy
-                    o Warm-up (5 mins): "What's Missing?" - Teacher shows a picture of a room, then hides an object, students guess what's missing.
-                    o Reading/Listening (15 mins): Listen to descriptions of rooms, focusing on furniture. Students draw the room based on description.
-                    o Speaking/Pronunciation (20 mins): "Describe Your Room" - Students describe their bedroom or living room to a partner, using prepositions of place.
-                    o Writing (5 mins): Write 2-3 sentences describing objects in a specific room.
-                    o Wrap-up/Review (5 mins): Review furniture vocabulary and prepositions. Preview: Actions at home.
-
-                • Lesson 3: Actions at Home
-                    o Theme: Talking about daily activities done at home.
-                    o Grammar Focus: Simple present tense verbs ("I sleep," "We eat," "He watches TV.")
-                    o Vocabulary Focus: sleep, eat, cook, watch (TV), read (review), play, clean, help, wake up, go to bed
-                    o Warm-up (5 mins): "Home Action Charades" - Students act out activities done at home.
-                    o Reading/Listening (15 mins): Read a short text about a child's daily routine at home. Students identify the actions.
-                    o Speaking/Pronunciation (20 mins): "My Home Routine" - Students describe 2-3 things they do at home every day. Group sharing.
-                    o Writing (5 mins): Write 2-3 sentences about what they do at home.
-                    o Wrap-up/Review (5 mins): Review home action verbs. Preview: Feelings and body parts next month.
-
-                February: Feelings & My Body
-                • Lesson 1: How Are You Feeling?
-                    o Theme: Expressing basic emotions.
-                    o Grammar Focus: "I am..." "Are you...?"
-                    o Vocabulary Focus: happy, sad, angry, sleepy, hungry, thirsty, excited, scared, tired (review)
-                    o Warm-up (5 mins): "Feeling Faces" - Students make faces for different emotions.
-                    o Reading/Listening (15 mins): Listen to short dialogues where people ask and answer "How are you feeling?".
-                    o Speaking/Pronunciation (20 mins): "Feeling Charades" - One student acts out a feeling, others guess. Pair activity: "How are you feeling today?"
-                    o Writing (5 mins): Draw different feeling faces and label them.
-                    o Wrap-up/Review (5 mins): Review feeling vocabulary. Preview: Parts of the body.
-
-                • Lesson 2: My Body Parts
-                    o Theme: Identifying and naming major body parts.
-                    o Grammar Focus: "This is my..." "I have two..."
-                    o Vocabulary Focus: head, eyes, nose, mouth, ears, arms, hands, legs, feet, fingers, toes, hair
-                    o Warm-up (5 mins): "Simon Says" (using body parts).
-                    o Reading/Listening (15 mins): Read a simple text about the human body. Students point to their body parts.
-                    o Speaking/Pronunciation (20 mins): "Body Part Song" - Sing a song like "Head, Shoulders, Knees, and Toes." Pair activity: "Point to your..."
-                    o Writing (5 mins): Draw a simple person and label 3-4 body parts.
-                    o Wrap-up/Review (5 mins): Review body part vocabulary. Preview: Actions with body parts.
-
-                • Lesson 3: Actions with My Body
-                    o Theme: Describing actions using body parts.
-                    o Grammar Focus: Simple present tense verbs ("I can run with my legs," "I can see with my eyes.")
-                    o Vocabulary Focus: run, walk, jump, clap, sing, talk, see, hear, smell, taste, touch (review action verbs from previous months)
-                    o Warm-up (5 mins): "Body Part Action Game" - Teacher calls out an action, students do it using the correct body part.
-                    o Reading/Listening (15 mins): Read simple sentences describing actions with body parts (e.g., "Birds fly with their wings.").
-                    o Speaking/Pronunciation (20 mins): "What Can You Do?" - Students tell a partner 2-3 things they can do with their body parts.
-                    o Writing (5 mins): Complete sentences: "I can ____ with my ____."
-                    o Wrap-up/Review (5 mins): Review action verbs with body parts. Preview: Spring and clothes next month.
-
-                March: Spring & Clothes
-                • Lesson 1: Spring is Here!
-                    o Theme: Learning about the characteristics of spring.
-                    o Grammar Focus: Simple present tense ("It is warm," "Flowers grow.")
-                    o Vocabulary Focus: warm (review), flowers, green (review), rain (review), sun (review), grow, bloom, bird (review), butterfly
-                    o Warm-up (5 mins): "Spring Word Web" - Students brainstorm words related to spring.
-                    o Reading/Listening (15 mins): Read a short story about the arrival of spring. Students identify spring elements.
-                    o Speaking/Pronunciation (20 mins): "What I Like About Spring" - Students share their favorite things about spring. Group discussion.
-                    o Writing (5 mins): Draw a spring picture and write 2-3 sentences about it.
-                    o Wrap-up/Review (5 mins): Review spring vocabulary. Preview: Spring clothes.
-
-                • Lesson 2: Spring Clothes
-                    o Theme: Identifying and naming clothes worn in spring.
-                    o Grammar Focus: "I wear a..." "He wears..." "She wears..."
-                    o Vocabulary Focus: shirt, pants, dress, skirt, jacket (review), shoes, socks, hat (review), sweater (review), umbrella (review)
-                    o Warm-up (5 mins): "What Should I Wear?" - Teacher describes weather, students choose appropriate clothes.
-                    o Reading/Listening (15 mins): Listen to descriptions of people wearing spring clothes. Students match descriptions to pictures.
-                    o Speaking/Pronunciation (20 mins): "My Favorite Spring Outfit" - Students describe an outfit they like to wear in spring. Pair activity.
-                    o Writing (5 mins): Draw a person wearing spring clothes and label 2-3 items.
-                    o Wrap-up/Review (5 mins): Review spring clothing vocabulary. Preview: Describing clothes.
-
-                • Lesson 3: Describing Clothes
-                    o Theme: Using adjectives to describe clothes (color, size, pattern).
-                    o Grammar Focus: Adjectives before nouns ("a red shirt," "big shoes," "a striped dress").
-                    o Vocabulary Focus: colors (review), big, small, new, old, clean, dirty, striped, dotted, plain
-                    o Warm-up (5 mins): "Clothes Color Match" - Match clothes pictures to colors.
-                    o Reading/Listening (15 mins): Read sentences describing clothes with adjectives (e.g., "She has a blue dress.").
-                    o Speaking/Pronunciation (20 mins): "Describe My Clothes" - Students describe what their partner or a classmate is wearing. Group activity.
-                    o Writing (5 mins): Write 2-3 sentences describing their own clothes or a friend's clothes.
-                    o Wrap-up/Review (5 mins): Review clothes vocabulary and descriptive adjectives.
-                `;
-
-                const prompt = `You are Professor Pebble, an EFL (English as a Foreign Language) children's teacher for English stone. Your goal is to help young learners (Elementary Grades 1-3) improve their English based on the provided lesson plan.
-
-                Here is the full lesson plan from April to March:
-                ${lessonPlan}
-
-                The current month for new targets is April.
-
-                Your current focus is to:
-                1.  **Review past lessons:** Offer to review topics from previous months (May, June, July, August, September, October, November, December, January, February, and March).
-                2.  **Practice current month's targets:** Guide practice for **April's** theme (Colors & Shapes).
-
-                When responding:
-                * Keep your language **simple, clear, and encouraging**, suitable for young learners.
-                * Ask **direct, single-focus questions** that require a specific answer from the lesson's vocabulary or grammar.
-                * **Avoid open-ended questions** like "What else?" or "Tell me more?". Instead, ask very specific questions such as:
-                    * "What color is this?" (for colors)
-                    * "Is this an apple or a banana?" (for fruits)
-                    * "Is it sunny or rainy today?" (for weather)
-                    * "What can you you see in the sea?" (for July Lesson 1)
-                    * "What color is the fish?" (for July Lesson 2)
-                    * "Can you swim at the sea?" (for July Lesson 3)
-                    * "What do you like to do in summer?" (for August Lesson 1)
-                    * "Where do you go in summer?" (for August Lesson 2)
-                    * "How do you feel when it's hot?" (for August Lesson 3)
-                    * "What is this? Is it a desk or a chair?" (for September Lesson 1)
-                    * "Do you have a pencil?" (for September Lesson 2)
-                    * "What do you do at school?" (for September Lesson 3)
-                    * "What color are the leaves in autumn?" (for October Lesson 1)
-                    * "Do you play in leaves in autumn?" (for October Lesson 2)
-                    * "What is this? Is it a ghost or a pumpkin?" (for October Lesson 3)
-                    * "Do you like pizza?" (for November Lesson 1)
-                    * "What do you eat for breakfast?" (for November Lesson 2)
-                    * "Is chocolate sweet or sour?" (for November Lesson 3)
-                    * "What do you wear in winter?" (for December Lesson 1)
-                    * "Do you build a snowman in winter?" (for December Lesson 2)
-                    * "What do you see on a Christmas tree?" (for December Lesson 3)
-                    * "What room is this?" (for January Lesson 1)
-                    * "Is the bed on the floor?" (for January Lesson 2)
-                    * "Do you sleep in your bedroom?" (for January Lesson 3)
-                    * "Are you happy or sad?" (for February Lesson 1)
-                    * "Point to your nose." (for February Lesson 2)
-                    * "Can you clap your hands?" (for February Lesson 3)
-                    * "Are there flowers in spring?" (for March Lesson 1)
-                    * "Do you wear a jacket in spring?" (for March Lesson 2)
-                    * "Is your shirt red or blue?" (for March Lesson 3)
-                * If the user asks for a review of April's curriculum, guide them through April's lessons with direct questions.
-                * If the user asks for a review of a previous month, pick a relevant activity from that month's lesson and ask a direct question about it.
-                * You can simulate "Warm-up", "Speaking/Pronunciation", or "Writing" activities by providing prompts or questions.
-                * Always be positive and supportive.
-
-                User: ${userMessage}
-
-                Professor Pebble:`;
-
-                const apiKey = ""; // Canvas will automatically provide this
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-                let currentChatHistory = [];
-                currentChatHistory.push({ role: "user", parts: [{ text: userMessage }] });
-
-                const payload = { contents: currentChatHistory };
+            try {
+                // **Important: For production, you should call a Firebase Cloud Function here**
+                // **instead of directly hitting the Gemini API with your key.**
+                // Example:
+                // import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js';
+                // const functions = getFunctions(app);
+                // const callGemini = httpsCallable(functions, 'callGeminiAPI'); // Your function name
+                // const result = await callGemini({ history: geminiChatHistory, userMessage: userMessage, lessonPlan: lessonPlan });
+                // const aiResponse = result.data.text;
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -860,6 +612,9 @@
                     displayMessage(aiResponse, 'ai');
                     lastAIResponse = aiResponse; // Update for speech synthesis
                     speakLastAIResponse(); // Automatically speak the AI response
+
+                    // Add AI message to Gemini's chat history for context
+                    geminiChatHistory.push({ role: "model", parts: [{ text: aiResponse }] });
 
                     // Add AI message to Firestore
                     if (isAuthReady && db && currentUserId) {
@@ -895,31 +650,25 @@
          */
         function speakLastAIResponse() {
             if ('speechSynthesis' in window) {
-                // Ensure voices are loaded
-                const voices = window.speechSynthesis.getVoices();
-                if (voices.length === 0) {
-                    window.speechSynthesis.onvoiceschanged = () => {
-                        const updatedVoices = window.speechSynthesis.getVoices();
-                        const utterance = new SpeechSynthesisUtterance(lastAIResponse);
-                        utterance.lang = 'en-US';
-                        // Optional: Select a specific voice if desired
-                        // utterance.voice = updatedVoices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google US English'));
-                        window.speechSynthesis.speak(utterance);
-                    };
-                } else {
-                    const utterance = new SpeechSynthesisUtterance(lastAIResponse);
-                    utterance.lang = 'en-US';
-                    // Optional: Select a specific voice if desired
-                    // utterance.voice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google US English'));
-                    window.speechSynthesis.speak(utterance);
-                }
+                window.speechSynthesis.cancel(); // Stop any ongoing speech
+                const utterance = new SpeechSynthesisUtterance(lastAIResponse);
+                utterance.lang = 'en-US';
+                // You can uncomment and modify this to pick a specific voice if desired
+                // const voices = window.speechSynthesis.getVoices();
+                // utterance.voice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google US English'));
+                utterance.onerror = (event) => {
+                    console.error('SpeechSynthesisUtterance error:', event);
+                };
+                window.speechSynthesis.speak(utterance);
             } else {
                 console.warn("Speech synthesis not supported in this browser.");
-                const messageBox = document.createElement('div');
-                messageBox.classList.add('ai-message', 'message-bubble');
-                messageBox.textContent = "Your browser does not support speech synthesis.";
-                chatMessages.appendChild(messageBox);
-                scrollToBottom();
+                // This message box for unsupported feature is only shown if the browser doesn't support it at all.
+                // The main flow should not create this on every speak attempt.
+                // const messageBox = document.createElement('div');
+                // messageBox.classList.add('ai-message', 'message-bubble');
+                // messageBox.textContent = "Your browser does not support speech synthesis.";
+                // chatMessages.appendChild(messageBox);
+                // scrollToBottom();
             }
         }
 
@@ -939,9 +688,10 @@
 
             if (!recognition) {
                 recognition = new webkitSpeechRecognition();
-                recognition.continuous = false; // Set to true for continuous listening
-                recognition.interimResults = false; // Get final results only
-                recognition.lang = 'en-US'; // Set recognition language
+                recognition.continuous = false; // Set to FALSE for single utterance (push-to-talk)
+                recognition.interimResults = true;
+                recognition.maxAlternatives = 1;
+                recognition.lang = 'en-US';
             }
 
             if (isListening) {
@@ -952,7 +702,9 @@
 
             recognition.onstart = () => {
                 isListening = true;
-                voiceInputButton.textContent = 'Stop Voice Input';
+                voiceInputButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 0110 16.129V18a1 1 0 102 0v-1.871h-.001z" clip-rule="evenodd" />
+                </svg> Stop Voice Input`; // Change text and icon
                 voiceInputButton.classList.add('bg-red-500', 'hover:bg-red-600');
                 voiceInputButton.classList.remove('bg-amber-500', 'hover:bg-amber-600');
                 listeningStatus.style.display = 'inline';
@@ -960,19 +712,29 @@
             };
 
             recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                chatInput.value = transcript;
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                chatInput.value = finalTranscript || interimTranscript; // Show final or interim
                 chatInput.style.height = 'auto'; // Reset textarea height
                 chatInput.style.height = (chatInput.scrollHeight) + 'px'; // Adjust height
-                console.log('Speech recognized:', transcript);
-                // Optionally send message automatically after recognition
-                // sendMessage();
+                console.log('Speech recognized - Final:', finalTranscript, 'Interim:', interimTranscript);
             };
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
                 listeningStatus.style.display = 'none';
-                voiceInputButton.textContent = 'Voice Input';
+                voiceInputButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 0110 16.129V18a1 1 0 102 0v-1.871h-.001z" clip-rule="evenodd" />
+                </svg> Voice Input`; // Reset text and icon
                 voiceInputButton.classList.remove('bg-red-500', 'hover:bg-red-600');
                 voiceInputButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
                 isListening = false;
@@ -982,7 +744,7 @@
                 if (event.error === 'not-allowed') {
                     errorMsg.textContent = "Professor Pebble needs microphone permission for voice input. Please allow it in your browser settings.";
                 } else if (event.error === 'no-speech') {
-                    errorMsg.textContent = "Professor Pebble didn't hear any speech. Please try again.";
+                    errorMsg.textContent = "Professor Pebble didn't hear any speech. Please speak louder or check your microphone.";
                 } else {
                     errorMsg.textContent = `Voice input error: ${event.error}.`;
                 }
@@ -992,11 +754,17 @@
 
             recognition.onend = () => {
                 isListening = false;
-                voiceInputButton.textContent = 'Voice Input';
+                voiceInputButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 0110 16.129V18a1 1 0 102 0v-1.871h-.001z" clip-rule="evenodd" />
+                </svg> Voice Input`; // Reset text and icon
                 voiceInputButton.classList.remove('bg-red-500', 'hover:bg-red-600');
                 voiceInputButton.classList.add('bg-amber-500', 'hover:bg-amber-600');
                 listeningStatus.style.display = 'none';
                 console.log('Speech recognition ended.');
+                // Send the collected speech as a message if it's not empty
+                if (chatInput.value.trim() !== '') {
+                    sendMessage();
+                }
             };
         }
 
@@ -1020,11 +788,8 @@
             this.style.height = (this.scrollHeight) + 'px';
         });
 
-        // Initial display of AI message if Firebase is not configured or still loading
-        if (!app) {
-            displayMessage(lastAIResponse, 'ai');
-            speakLastAIResponse(); // Speak initial message if offline
-        }
+        // Call displayInitialAIMessage on window load
+        window.addEventListener('load', displayInitialAIMessage);
     </script>
 </body>
 </html>
