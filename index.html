@@ -6,30 +6,30 @@
     <title>Professor Pebble - English Practice AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Basic styling for the chat container */
+        /* Same styles as provided, no changes needed */
         body { 
             margin: 0; 
-            font-family: 'Inter', sans-serif; /* Using Inter font as per instructions */
+            font-family: 'Inter', sans-serif;
             overflow: hidden; 
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #e0f2f7; /* Light blue background for a marine theme */
+            background-color: #e0f2f7;
         }
         #chat-container {
-            height: 90vh; /* Make it take up most of the viewport height */
-            width: 95%; /* Fluid width for responsiveness */
-            max-width: 600px; /* Max width for desktop view */
+            height: 90vh;
+            width: 95%;
+            max-width: 600px;
             display: flex;
             flex-direction: column;
-            background-color: #ffffff; /* White background for chat area */
-            border-radius: 15px; /* Rounded corners for the main container */
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
         #chat-header {
-            background-color: #007bff; /* Blue header */
+            background-color: #007bff;
             color: white;
             padding: 15px;
             font-size: 1.2em;
@@ -45,40 +45,40 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            scroll-behavior: smooth; /* Smooth scrolling for new messages */
+            scroll-behavior: smooth;
         }
         .message {
             max-width: 80%;
             padding: 12px 18px;
-            border-radius: 25px; /* More rounded bubbles */
+            border-radius: 25px;
             word-wrap: break-word;
             line-height: 1.5;
             font-size: 1.05em;
         }
         .user-message {
-            background-color: #007bff; /* User message blue */
+            background-color: #007bff;
             color: white;
             align-self: flex-end;
-            border-bottom-right-radius: 8px; /* Slightly less rounded on the bottom-right */
+            border-bottom-right-radius: 8px;
         }
         .ai-message {
-            background-color: #e2e2e2; /* AI message light gray */
+            background-color: #e2e2e2;
             color: #333;
             align-self: flex-start;
-            border-bottom-left-radius: 8px; /* Slightly less rounded on the bottom-left */
+            border-bottom-left-radius: 8px;
         }
         .ai-message.correction {
-            background-color: #ffe0b2; /* Light orange for corrections */
-            border-left: 4px solid #ff9800; /* Orange border */
-            padding-left: 14px; /* Adjust padding due to border */
+            background-color: #ffe0b2;
+            border-left: 4px solid #ff9800;
+            padding-left: 14px;
             font-style: italic;
             color: #5a3e00;
         }
         #chat-input-area {
             display: flex;
             padding: 15px;
-            background-color: #f8f9fa; /* Lighter background for input area */
-            border-top: 1px solid #e9ecef; /* Lighter border */
+            background-color: #f8f9fa;
+            border-top: 1px solid #e9ecef;
             border-bottom-left-radius: 15px;
             border-bottom-right-radius: 15px;
             align-items: center;
@@ -86,37 +86,38 @@
         #user-input {
             flex-grow: 1;
             padding: 12px 18px;
-            border: 1px solid #ced4da; /* Light gray border */
-            border-radius: 25px; /* Rounded input field */
+            border: 1px solid #ced4da;
+            border-radius: 25px;
             outline: none;
             font-size: 16px;
             transition: border-color 0.2s ease-in-out;
         }
         #user-input:focus {
-            border-color: #007bff; /* Blue border on focus */
+            border-color: #007bff;
+51e0b2;
         }
         #send-button, #speak-button {
-            background-color: #28a745; /* Green send button */
+            background-color: #28a745;
             color: white;
             border: none;
-            border-radius: 25px; /* Rounded buttons */
+            border-radius: 25px;
             padding: 12px 20px;
             margin-left: 10px;
             cursor: pointer;
             font-size: 16px;
             transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Button shadow */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         #send-button:hover, #speak-button:hover {
-            background-color: #218838; /* Darker green on hover */
-            transform: translateY(-1px); /* Slight lift effect */
+            background-color: #218838;
+            transform: translateY(-1px);
         }
         #send-button:active, #speak-button:active {
-            transform: translateY(0); /* Press effect */
+            transform: translateY(0);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
         #speak-button.recording {
-            background-color: #dc3545; /* Red when recording */
+            background-color: #dc3545;
         }
         #avatar {
             width: 50px;
@@ -124,8 +125,8 @@
             border-radius: 50%;
             margin-right: 10px;
             flex-shrink: 0;
-            object-fit: cover; /* Ensure image covers the area */
-            border: 2px solid #007bff; /* Blue border around avatar */
+            object-fit: cover;
+            border: 2px solid #007bff;
         }
         .message-row {
             display: flex;
@@ -139,7 +140,7 @@
         }
         #speaking-indicator {
             position: absolute;
-            bottom: 100px; /* Adjust based on input area height */
+            bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(0, 0, 0, 0.75);
@@ -148,15 +149,13 @@
             border-radius: 8px;
             font-size: 0.9em;
             display: none;
-            z-index: 10; /* Ensure it's on top */
+            z-index: 10;
         }
-
-        /* Responsive adjustments */
         @media (max-width: 768px) {
             #chat-container {
-                height: 100vh; /* Full height on smaller screens */
-                width: 100%; /* Full width on smaller screens */
-                border-radius: 0; /* No rounded corners on full screen */
+                height: 100vh;
+                width: 100%;
+                border-radius: 0;
                 box-shadow: none;
             }
             #chat-header {
@@ -166,7 +165,7 @@
                 border-radius: 0;
             }
             .message {
-                max-width: 90%; /* Allow messages to take more width */
+                max-width: 90%;
             }
         }
     </style>
@@ -178,7 +177,7 @@
         </div>
         <div id="chat-messages">
             <div class="message-row ai">
-                <img id="avatar" src="https://placehold.co/50x50/007bff/ffffff?text=Prof" alt="Professor Pebble Avatar">
+                <img id="avatar" src="professor_pebble.png" alt="Professor Pebble Avatar">
                 <div class="message ai-message" id="initial-greeting"></div>
             </div>
         </div>
@@ -190,16 +189,7 @@
         </div>
     </div>
 
-    <script type="module">
-        import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
-
-        // IMPORTANT: Replace with your actual Gemini API Key.
-        // For security in production, consider using a backend to proxy API calls.
-        const API_KEY = "AIzaSyDAjKK2-4GZwL4D1bzxxZRubhIfzrWYaEs"; // YOUR API KEY GOES HERE
-
-        const genAI = new GoogleGenerativeAI(API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
+    <script>
         const chatMessages = document.getElementById('chat-messages');
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-button');
@@ -207,16 +197,16 @@
         const speakingIndicator = document.getElementById('speaking-indicator');
         const initialGreetingDiv = document.getElementById('initial-greeting');
 
-        // Simulated student profiles (replace with actual backend integration for real data)
+        // Mock student profiles
         const simulatedStudentProfiles = {
             "terry": { level: "Beginner", interests: "Yakisoba, robots, space", lastTopic: "greetings" },
             "sara": { level: "Intermediate", interests: "animals, nature, reading", lastTopic: "past tense" },
             "kenji": { level: "Advanced", interests: "history, technology, debate", lastTopic: "idioms" }
         };
 
-        let currentStudent = null; // To store the profile of the current student
+        let currentStudent = null;
 
-        // Dynamic initial greetings - UPDATED FOR MORE DIRECT QUESTIONS
+        // Initial greetings
         const initialGreetings = [
             "Hello, marine explorer! What color is a shark?",
             "Hi there, young scientist! Are sharks big or small?",
@@ -224,18 +214,26 @@
             "Ahoy, matey! What is your favorite sea animal?"
         ];
 
-        // Set a random initial greeting when the page loads
+        // Mock AI responses
+        const mockResponses = [
+            "Great job! That's a nice answer. What other sea animals do you know?",
+            "Super effort! Can you tell me if a dolphin is bigger than a fish?",
+            "Fantastic! Let's try this: What color is a whale?",
+            "Well done! How many fish do you see in the sea?",
+            "Good try! A more natural way to say that is: 'The shark is big.' Can you say it?"
+        ];
+
+        // Set random initial greeting
         document.addEventListener('DOMContentLoaded', () => {
             const randomGreeting = initialGreetings[Math.floor(Math.random() * initialGreetings.length)];
             initialGreetingDiv.textContent = randomGreeting;
             speakText(randomGreeting);
         });
 
-
         // Web Speech API for voice input
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-        let speechTimeout; // Variable to hold the timeout ID
+        let speechTimeout;
 
         if (recognition) {
             recognition.continuous = false;
@@ -243,37 +241,36 @@
             recognition.lang = 'en-US';
 
             recognition.onstart = () => {
-                speakingIndicator.textContent = 'Listening... Please speak now.'; // More direct prompt
+                speakingIndicator.textContent = 'Listening... Please speak now.';
                 speakingIndicator.style.display = 'block';
                 speakButton.textContent = 'Stop Speaking';
-                speakButton.classList.add('recording'); // Add class for red color
+                speakButton.classList.add('recording');
 
-                // Set a timeout to stop listening if no speech is detected
                 speechTimeout = setTimeout(() => {
-                    recognition.stop(); // Manually stop recognition
+                    recognition.stop();
                     appendMessage("AI", "No speech detected. Please try again.", true);
-                }, 5000); // 5 seconds timeout
+                }, 5000);
             };
 
             recognition.onresult = (event) => {
-                clearTimeout(speechTimeout); // Clear timeout if speech is detected
+                clearTimeout(speechTimeout);
                 const speechResult = event.results[0][0].transcript;
                 userInput.value = speechResult;
-                sendMessage(); // Send message automatically after speech
+                sendMessage();
             };
 
             recognition.onspeechend = () => {
-                clearTimeout(speechTimeout); // Clear timeout when speech ends
+                clearTimeout(speechTimeout);
                 speakingIndicator.style.display = 'none';
                 speakButton.textContent = 'Speak';
-                speakButton.classList.remove('recording'); // Remove class to revert color
+                speakButton.classList.remove('recording');
             };
 
             recognition.onerror = (event) => {
-                clearTimeout(speechTimeout); // Clear timeout on error
+                clearTimeout(speechTimeout);
                 speakingIndicator.style.display = 'none';
                 speakButton.textContent = 'Speak';
-                speakButton.classList.remove('recording'); // Remove class to revert color
+                speakButton.classList.remove('recording');
                 console.error('Speech recognition error:', event.error);
                 if (event.error === 'no-speech') {
                     appendMessage("AI", "I didn't hear anything. Please make sure your microphone is on and try speaking again.", true);
@@ -282,7 +279,7 @@
                 }
             };
         } else {
-            speakButton.style.display = 'none'; // Hide speak button if API not supported
+            speakButton.style.display = 'none';
         }
 
         // Web Speech API for voice output
@@ -291,11 +288,11 @@
 
         function speakText(text) {
             if (synth.speaking && speechUtterance) {
-                synth.cancel(); // Stop current speech if any
+                synth.cancel();
             }
             speechUtterance = new SpeechSynthesisUtterance(text);
             speechUtterance.lang = 'en-US';
-            speechUtterance.rate = 0.8; // Adjusted for slower speech
+            speechUtterance.rate = 0.8;
             speechUtterance.pitch = 1.0;
             synth.speak(speechUtterance);
         }
@@ -316,12 +313,11 @@
                 messageRow.classList.add('ai');
                 const avatarImg = document.createElement('img');
                 avatarImg.id = 'avatar';
-                avatarImg.src = "https://placehold.co/50x50/007bff/ffffff?text=Prof";
+                avatarImg.src = "professor_pebble.png";
                 avatarImg.alt = "Professor Pebble Avatar";
                 messageRow.appendChild(avatarImg);
                 messageRow.appendChild(messageDiv);
 
-                // Check for grammar correction phrases and add a special class
                 const correctionPatterns = [
                     "The correct way to say that is:",
                     "Let's refine that:",
@@ -335,257 +331,30 @@
                     messageDiv.classList.add('correction');
                 }
 
-                if (isVoice) { // Only speak AI messages that are specifically marked for voice output
+                if (isVoice) {
                     speakText(text);
                 }
             }
             chatMessages.appendChild(messageRow);
-            chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        async function sendMessage() {
+        function sendMessage() {
             const userText = userInput.value.trim();
             if (userText === '') return;
 
             appendMessage('user', userText);
             userInput.value = '';
 
-            let context = `
-<LLM_INSTRUCTION_SET>
-    <ROLE_ASSIGNMENT>
-        <PRIMARY_IDENTITY>Curious_Marine_Biologist_AI_Teacher</PRIMARY_IDENTITY>
-        <TARGET_LEARNER_PROFILE>
-            <AGE_GROUP>Fifth_Grade_Elementary</AGE_GROUP>
-            <ENGLISH_PROFICIENCY>Basic_Interaction_Intermediate_Beginner</ENGLISH_PROFICIENCY>
-        </TARGET_LEARNER_PROFILE>
-        <CORE_PEDAGOGICAL_PRINCIPLES>
-            <PRINCIPLE_1>Prioritize_Psychological_Safety</PRINCIPLE_1>
-            <PRINCIPLE_2>Utilize_Positive_Reinforcement_Extensively</PRINCIPLE_2>
-            <PRINCIPLE_3>Employ_Gentle_Correction_Techniques</PRINCIPLE_3>
-            <PRINCIPLE_4>Encourage_Extended_Verbal_Output</PRINCIPLE_4>
-            <PRINCIPLE_5>Foster_Creative_Expression</PRINCIPLE_5>
-        </CORE_PEDAGOGICAL_PRINCIPLES>
-    </ROLE_ASSIGNMENT>
-    
-    <INPUT_PROCESSING_RULES>
-        <EXPECTED_INPUT_FORMAT>Simple_English_Sentences_Or_Phrases</EXPECTED_INPUT_FORMAT>
-        <TOPICAL_DOMAIN>Sea_And_Marine_Life_Vocabulary_And_Concepts</TOPICAL_DOMAIN>
-        <ILLUSTRATIVE_INPUT_EXAMPLES>
-            <EXAMPLE_INPUT_A>Descriptive_Phrase_Like_"big_blue_dolphin"</EXAMPLE_INPUT_A>
-            <EXAMPLE_INPUT_B>Comparative_Sentence_Like_"The_shark_is_bigger_than_the_fish"</EXAMPLE_INPUT_B>
-            <EXAMPLE_INPUT_C>Past_Tense_Action_Like_"Yesterday,_I_swam"</EXAMPLE_INPUT_C>
-            <EXAMPLE_INPUT_D>Environmental_Statement_Like_"We_should_clean_the_beach"</EXAMPLE_INPUT_D>
-        </ILLUSTRATIVE_INPUT_EXAMPLES>
-    </INPUT_PROCESSING_RULES>
-    
-    <OUTPUT_GENERATION_RULES>
-        <POSITIVE_FEEDBACK_STRATEGY>
-            <CONDITION>Upon_Every_Student_Utterance_Attempt</CONDITION>
-            <RESPONSE_VARIATIONS>
-                <RESPONSE_A>Good_job!</RESPONSE_A>
-                <RESPONSE_B>Wow!</RESPONSE_B>
-                <RESPONSE_C>Excellent_thinking!</RESPONSE_C>
-                <RESPONSE_D>Super_sentence!</RESPONSE_D>
-                <RESPONSE_E>Fantastic_idea!</RESPONSE_E>
-                <RESPONSE_F>That's_a_great_way_to_say_it!</RESPONSE_F>
-                <RESPONSE_G>You're_doing_so_well!</RESPONSE_G>
-                <RESPONSE_H>Amazing_work!</RESPONSE_H>
-                <RESPONSE_I>Keep_going!</RESPONSE_I>
-                <RESPONSE_J>Very_good!</RESPONSE_J>
-                <RESPONSE_K>Wonderful!</RESPONSE_K>
-                <RESPONSE_L>Brilliant!</RESPONSE_L>
-                <RESPONSE_M>Nice_job!</RESPONSE_M>
-                <RESPONSE_N>That's_right!</RESPONSE_N>
-                <RESPONSE_O>Perfect!</RESPONSE_O>
-                <RESPONSE_P>Great_answer!</RESPONSE_P>
-                <RESPONSE_Q>Super_effort!</RESPONSE_Q>
-                <RESPONSE_R>You_got_it!</RESPONSE_R>
-                <RESPONSE_S>Fantastic_progress!</RESPONSE_S>
-                <RESPONSE_T>Well_done!</RESPONSE_T>
-            </RESPONSE_VARIATIONS>
-        </POSITIVE_FEEDBACK_STRATEGY>
-        <CORRECTION_STRATEGY>
-            <CONDITION>If_Student_Utterance_Contains_Inaccuracy</CONDITION>
-            <ACTION_SEQUENCE>
-                <STEP_1>Gently_Repeat_Correct_Word_Or_Sentence_For_Student_To_Copy</STEP_1>
-                <STEP_2>Explicitly_Avoid_Negative_Terms_Such_As_"wrong"_Or_"no"</STEP_2>
-                <STEP_3>Immediately_Encourage_Another_Attempt_Or_Elaboration_Without_Pressure</STEP_3>
-                <STEP_4>If_the_student_provides_an_incomplete_sentence_or_single_word_answer,_gently_model_the_full_correct_sentence_and_encourage_them_to_repeat_it_or_use_a_full_sentence_in_their_next_response.</STEP_4>
-            </ACTION_SEQUENCE>
-        </CORRECTION_STRATEGY>
-        <QUESTION_PROMPTING_STRATEGY>
-            <QUESTION_TYPE>Direct_Fact_Recall_And_Simple_Description</QUESTION_TYPE>
-            <QUESTION_RELEVANCE>Directly_Linked_To_Student's_Previous_Input_Or_Overall_Sea_Theme</QUESTION_RELEVANCE>
-            <QUESTION_MAPPING_EXAMPLES>
-                <MAPPING_1_WARMUP_VOCAB>
-                    <STUDENT_INPUT_CONTEXT>General_Sea_Animal_Preference</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"What_sea_animal_do_you_like?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_1_WARMUP_VOCAB>
-                <MAPPING_2_WARMUP_VOCAB>
-                    <STUDENT_INPUT_CONTEXT>Describing_A_Specific_Animal</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"What_color_is_a_shark?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_2_WARMUP_VOCAB>
-                <MAPPING_3_WARMUP_VOCAB>
-                    <STUDENT_INPUT_CONTEXT>Observing_A_Picture</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"What_do_you_see_in_the_picture?_(Imagine_a_fish!)"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_3_WARMUP_VOCAB>
-                <MAPPING_4_DESCRIPTIVE_PHRASES>
-                    <STUDENT_INPUT_CONTEXT>Asking_About_Size</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"Are_sharks_big_or_small?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_4_DESCRIPTIVE_PHRASES>
-                <MAPPING_5_DESCRIPTIVE_PHRASES>
-                    <STUDENT_INPUT_CONTEXT>Asking_About_Body_Parts</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"How_many_arms_does_an_octopus_have?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_5_DESCRIPTIVE_PHRASES>
-                <MAPPING_6_DESCRIPTIVE_PHRASES>
-                    <STUDENT_INPUT_CONTEXT>General_Description_With_Specific_Adjectives</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"Describe_your_favorite_sea_animal._Is_it_big_or_small?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_6_DESCRIPTIVE_PHRASES>
-                <MAPPING_7_COMPARATIVES_SUPERLATIVES>
-                    <STUDENT_INPUT_CONTEXT>Comparing_Sizes</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"Which_is_bigger:_a_dolphin_or_a_fish?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_7_COMPARATIVES_SUPERLATIVES>
-                <MAPPING_8_COMPARATIVES_SUPERLATIVES>
-                    <STUDENT_INPUT_CONTEXT>Asking_About_Quantity</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"How_many_fish_do_you_see?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_8_COMPARATIVES_SUPERLATIVES>
-                <MAPPING_9_SIMPLE_PAST_FUTURE>
-                    <STUDENT_INPUT_CONTEXT>Past_Action_At_Sea</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"Did_you_swim_in_the_sea_yesterday?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_9_SIMPLE_PAST_FUTURE>
-                <MAPPING_10_SIMPLE_PAST_FUTURE>
-                    <STUDENT_INPUT_CONTEXT>Future_Action_At_Sea</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"Will_you_see_a_dolphin_tomorrow?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_10_SIMPLE_PAST_FUTURE>
-                <MAPPING_11_CREATIVE_STORYTELLING>
-                    <STUDENT_INPUT_CONTEXT>Imagining_As_An_Animal</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"If_you_were_a_fish,_where_would_you_swim?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_11_CREATIVE_STORYTELLING>
-                <MAPPING_12_REVIEW_COLORS>
-                    <STUDENT_INPUT_CONTEXT>Any_Sea_Animal_Discussion</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"What_color_is_a_whale?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_12_REVIEW_COLORS>
-                <MAPPING_13_REVIEW_VEGETABLES>
-                    <STUDENT_INPUT_CONTEXT>Any_Discussion_About_Size</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"Can_you_name_a_big_vegetable?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_13_REVIEW_VEGETABLES>
-                <MAPPING_14_REVIEW_FRUITS>
-                    <STUDENT_INPUT_CONTEXT>Any_General_Conversation</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"What_is_your_favorite_fruit?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_14_REVIEW_FRUITS>
-                <MAPPING_15_REVIEW_SHAPES>
-                    <STUDENT_INPUT_CONTEXT>Any_General_Conversation</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"Can_you_name_a_round_fruit?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_15_REVIEW_SHAPES>
-                <MAPPING_16_REVIEW_WEATHER>
-                    <STUDENT_INPUT_CONTEXT>Any_General_Conversation</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"What_is_the_weather_like_today?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_16_REVIEW_WEATHER>
-                <MAPPING_17_MIX_ATTRIBUTES>
-                    <STUDENT_INPUT_CONTEXT>Discussing_One_Attribute_Of_An_Animal</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"What_color_is_a_shark?"_or_"Is_a_crab_red_or_blue?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_17_MIX_ATTRIBUTES>
-                <MAPPING_18_MIX_ATTRIBUTES_AND_REVIEW>
-                    <STUDENT_INPUT_CONTEXT>Discussing_Any_Sea_Animal</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"What_color_is_a_fish?_And_what_shape_is_a_fish?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_18_MIX_ATTRIBUTES_AND_REVIEW>
-                <MAPPING_19_COUNTING_AND_COLOR>
-                    <STUDENT_INPUT_CONTEXT>Discussing_Any_Sea_Animal</STUDENT_INPUT_CONTEXT>
-                    <AI_RESPONSE_EXAMPLE>"How_many_fish_do_you_see?_What_color_are_they?"</AI_RESPONSE_EXAMPLE>
-                </MAPPING_19_COUNTING_AND_COLOR>
-            </QUESTION_MAPPING_EXAMPLES>
-            <QUESTION_OBJECTIVE>Elicit_Specific_Vocabulary_And_Simple_Sentence_Structures</QUESTION_OBJECTIVE>
-            <TOPIC_SWITCHING_GUIDELINES>
-                <GUIDELINE_1>After_1_consecutive_question_on_the_same_specific_attribute_(e.g.,_size,_color,_number_of_limbs)_for_a_given_animal,_gently_transition_to_a_new_attribute_for_that_animal_or_a_new_animal_entirely._Alternatively,_introduce_a_review_topic_from_PAST_LESSON_THEMES_FOR_REVIEW.</GUIDELINE_1>
-                <GUIDELINE_2>Prioritize_review_topics_that_naturally_connect_to_the_current_sea_theme_or_previous_student_input_using_the_PAST_LESSON_THEMES_FOR_REVIEW.</GUIDELINE_2>
-                <GUIDELINE_3>Vary_the_type_of_question_asked_even_within_a_sub-topic_to_maintain_engagement.</GUIDELINE_3>
-                <GUIDELINE_4>Do_not_repeat_the_exact_same_question_within_a_short_sequence_of_turns_(e.g.,_within_3-5_turns).</GUIDELINE_4>
-                <GUIDELINE_5>If_the_student's_response_opens_a_natural_avenue_to_a_different_but_related_topic_or_review_theme,_take_that_opportunity.</GUIDELINE_5>
-                <GUIDELINE_6>After_a_direct_factual_question_is_answered_correctly_once,_try_to_ask_a_related_but_different_question_from_the_MAPPING_EXAMPLES_or_a_review_question._Avoid_re-asking_the_same_fact_immediately.</GUIDELINE_6>
-                <GUIDELINE_7>Actively_seek_opportunities_to_integrate_vocabulary_and_grammar_from_PAST_LESSON_THEMES_FOR_REVIEW_into_new_questions.</GUIDELINE_7>
-                <GUIDELINE_8>If_the_conversation_becomes_stuck_on_a_single_attribute_or_animal_for_more_than_2_turns,_force_a_switch_to_a_new_animal,_a_new_attribute_(e.g.,_from_size_to_color),_or_a_review_topic_from_PAST_LESSON_THEMES_FOR_REVIEW.</GUIDELINE_8>
-            </TOPIC_SWITCHING_GUIDELINES>
-        </QUESTION_PROMPTING_STRATEGY>
-        <OVERALL_CONVERSATION_TONE>Consistently_Positive_Encouraging_And_Curious</OVERALL_CONVERSATION_TONE>
-        <PRIMARY_INTERACTION_GOAL>Maximize_Student_Verbal_Participation_Confidence_And_Content_Elaboration_Through_Direct_Questions_And_Complete_Sentences</PRIMARY_INTERACTION_GOAL>
-        <CONVERSATIONAL_VARIETY_GUIDELINES>
-            <GUIDELINE_1>Vary_initial_greetings_and_acknowledgments_to_avoid_repetition.</GUIDELINE_1>
-            <GUIDELINE_2>Use_a_diverse_range_of_phrases_for_positive_feedback_and_transitions.</GUIDELINE_2>
-            <GUIDELINE_3>After_the_initial_introduction,_integrate_the_student's_name_naturally_into_the_conversation_without_overuse.</GUIDELINE_3>
-            <GUIDELINE_4>Avoid_repeating_any_specific_phrase_or_question_within_a_sequence_of_5-7_turns.</GUIDELINE_4>
-            <GUIDELINE_5>Strive_for_a_dynamic_and_unpredictable_flow_to_keep_the_student_engaged.</GUIDELINE_5>
-        </CONVERSATIONAL_VARIETY_GUIDELINES>
-    </OUTPUT_GENERATION_RULES>
-    
-    <INITIATION_PROTOCOL>
-        <START_PHRASE_OPTIONS>
-            <OPTION_1>Hello,_marine_explorer!_Let's_talk_about_the_ocean!</OPTION_1>
-            <OPTION_2>Hi_there,_young_scientist!_Welcome_to_our_sea_adventure!</OPTION_2>
-            <OPTION_3>Greetings,_future_ocean_expert!_Professor_Pebble_here.</OPTION_3>
-            <OPTION_4>Ahoy,_matey!_Ready_to_explore_the_sea_with_Professor_Pebble?</OPTION_4>
-        </START_PHRASE_OPTIONS>
-    </INITIATION_PROTOCOL>
-    
-    <PAST_LESSON_THEMES_FOR_REVIEW>
-        <MONTH_APRIL>
-            <THEME>Colors & Shapes</THEME>
-            <VOCABULARY>colors (red, blue), shapes (circle, square)</VOCABULARY>
-            <GRAMMAR>Naming colors and shapes</GRAMMAR>
-            <PHONICS>A, B, C</PHONICS>
-        </MONTH_APRIL>
-        <MONTH_MAY>
-            <THEME>Fruits & Vegetables</THEME>
-            <VOCABULARY>fruits (apple, banana), vegetables (carrot, tomato)</VOCABULARY>
-            <GRAMMAR>Naming fruits and vegetables</GRAMMAR>
-            <PHONICS>D, E</PHONICS>
-        </MONTH_MAY>
-        <MONTH_JUNE>
-            <THEME>Weather & Seasons</THEME>
-            <VOCABULARY>sunny, rainy, cloudy, spring, summer</VOCABULARY>
-            <GRAMMAR>Describing weather and seasons</GRAMMAR>
-            <PHONICS>F, G</PHONICS>
-        </MONTH_JUNE>
-        <MONTH_JULY>
-            <THEME>At the Sea</THEME>
-            <VOCABULARY>fish, shell, boat, sand</VOCABULARY>
-            <GRAMMAR>Naming sea objects</GRAMMAR>
-            <PHONICS>H, I</PHONICS>
-        </MONTH_JULY>
-    </PAST_LESSON_THEMES_FOR_REVIEW>
-
-    <REVIEW_INTEGRATION_GUIDELINES>
-        <GUIDELINE_1>Occasionally_introduce_review_questions_from_past_themes_to_reinforce_learning.</GUIDELINE_1>
-        <GUIDELINE_2>Prioritize_review_topics_that_naturally_connect_to_the_current_sea_theme_or_previous_student_input.</GUIDELINE_2>
-        <GUIDELINE_3>Adjust_complexity_of_review_questions_to_match_the_student's_demonstrated_proficiency_level.</GUIDELINE_3>
-        <GUIDELINE_4>Ensure_review_is_seamless_and_does_not_disrupt_the_flow_of_the_current_conversation_topic.</GUIDELINE_4>
-        <GUIDELINE_5>When_introducing_a_review_topic,_try_to_bridge_it_from_the_current_conversation_naturally._For_example,_if_discussing_a_blue_fish,_ask_"What_other_blue_things_do_you_know?"_to_review_colors.</GUIDELINE_5>
-        <GUIDELINE_6>Vary_the_frequency_of_review_questions_to_keep_the_conversation_engaging_and_unpredictable.</GUIDELINE_6>
-    </REVIEW_INTEGRATION_GUIDELINES>
-
-</LLM_INSTRUCTION_SET>
-`;
-
-            // Check for student name to load profile
+            // Check for student name
             const nameMatch = userText.toLowerCase().match(/(?:my name is|i'm)\s+([a-z]+)/);
             if (nameMatch && simulatedStudentProfiles[nameMatch[1]]) {
                 currentStudent = simulatedStudentProfiles[nameMatch[1]];
-                context += `Current student is ${nameMatch[1]}. Their level is ${currentStudent.level}. Their interests are ${currentStudent.interests}. Their last practiced topic was ${currentStudent.lastTopic}. Please tailor your responses to this student.\n`;
-            } else if (currentStudent) {
-                context += `Currently conversing with ${currentStudent.level} level student whose interests include ${currentStudent.interests} and last topic was ${currentStudent.lastTopic}. Keep this context in mind.\n`;
+                appendMessage('ai', `Nice to meet you, ${nameMatch[1]}! Let's talk about the sea. ${mockResponses[Math.floor(Math.random() * mockResponses.length)]}`, true);
             } else {
-                context += "No specific student profile detected. Proceed with general English practice.\n";
-            }
-
-            const fullPrompt = `${context}\\nStudent: ${userText}\\nProfessor Pebble:`;
-
-            try {
-                const result = await model.generateContent(fullPrompt);
-                const response = await result.response;
-                const aiText = response.text();
-                appendMessage('ai', aiText, true); // True to trigger voice output
-            } catch (error) {
-                console.error("Error communicating with Gemini API:", error);
-                appendMessage('ai', "I apologize, but I'm having trouble connecting right now. Please try again later.", true);
+                // Mock AI response
+                const response = mockResponses[Math.floor(Math.random() * mockResponses.length)];
+                appendMessage('ai', response, true);
             }
         }
 
@@ -598,7 +367,6 @@
 
         speakButton.addEventListener('click', () => {
             if (recognition) {
-                // Check if recognition is already active before starting
                 if (recognition.recognizing) {
                     recognition.stop();
                 } else {
